@@ -1,0 +1,5 @@
+{
+  "name": "Copy of FPL AI Team Ranker",
+  "description": "A web application to track Fantasy Premier League mini-league scores, visualize performance with a line chart, and use AI to analyze and rank teams based on their players and upcoming fixtures.",
+  "requestFramePermissions": []
+}
