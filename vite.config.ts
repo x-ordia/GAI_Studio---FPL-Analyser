@@ -4,6 +4,6 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // IMPORTANT: Replace 'YOUR_REPO_NAME' with the name of your GitHub repository.
-  base: '/YOUR_REPO_NAME/',
+  // IMPORTANT: The base path should match your repository name on GitHub.
+  base: '/fpl-ai-ranker/',
 })
