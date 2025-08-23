@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding } from './types';
 import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings } from './services/geminiService';
@@ -50,7 +51,7 @@ const App: React.FC = () => {
           const fixtureData = await fetchFixtures(nextGameweek.id);
           setFixtures(fixtureData);
 
-          if (import.meta.env.VITE_API_KEY) {
+          if (process.env.API_KEY) {
             setIsLoadingKeyMatches(true);
             const fixtureNames = fixtureData.map(f => {
               const home = bootstrap.teams.find(t => t.id === f.team_h)?.name || '...';
@@ -84,8 +85,8 @@ const App: React.FC = () => {
     setAiScores(prev => ({...prev, [teamId]: null}));
 
     try {
-      if (!import.meta.env.VITE_API_KEY) {
-        throw new Error("API key is not configured. Please ensure you have a .env file with VITE_API_KEY set.");
+      if (!process.env.API_KEY) {
+        throw new Error("API key is not configured. Please set the API_KEY environment variable.");
       }
       const result = await analyzeTeamStrength(teamToAnalyze.players.slice(0, 11));
       setAiScores(prev => ({ ...prev, [teamId]: result }));
@@ -105,8 +106,8 @@ const App: React.FC = () => {
     setIsLoadingPredictions(true);
     
     try {
-      if (!import.meta.env.VITE_API_KEY) {
-        throw new Error("API key is not configured. Please ensure you have a .env file with VITE_API_KEY set.");
+      if (!process.env.API_KEY) {
+        throw new Error("API key is not configured. Please set the API_KEY environment variable.");
       }
       const result = await predictFinalStandings(teams);
       setPredictedStandings(result);
