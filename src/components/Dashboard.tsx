@@ -66,7 +66,7 @@ const KeyMatchesAnalysis: React.FC<{
     keyMatches: KeyMatch[] | null,
     isLoading: boolean 
 }> = ({ keyMatches, isLoading }) => {
-    if (!process.env.API_KEY) return null;
+    if (!import.meta.env.VITE_API_KEY) return null;
     if (!keyMatches && !isLoading) return null;
 
     return (
@@ -141,7 +141,7 @@ const PredictedFinalStandings: React.FC<{
     isLoading: boolean;
     onPredict: () => void;
 }> = ({ standings, isLoading, onPredict }) => {
-    if (!process.env.API_KEY) return null;
+    if (!import.meta.env.VITE_API_KEY) return null;
 
     return (
         <div className="bg-fpl-purple/60 p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">

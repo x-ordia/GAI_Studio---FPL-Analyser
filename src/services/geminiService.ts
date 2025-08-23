@@ -1,9 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Initialize the AI client only if the API key is available.
+const apiKey = import.meta.env.VITE_API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+const ensureAiInitialized = () => {
+    if (!ai) {
+        throw new Error("Gemini AI client is not initialized. Make sure your VITE_API_KEY is set in your .env file.");
+    }
+};
 
 export const analyzeTeamStrength = async (players: Player[]): Promise<AiAnalysisResult> => {
+  ensureAiInitialized();
   const playerList = players.map(p => `- ${p.name} (${p.position} from ${p.team})`).join('\n');
 
   const prompt = `
@@ -23,7 +32,7 @@ export const analyzeTeamStrength = async (players: Player[]): Promise<AiAnalysis
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await ai!.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -62,6 +71,7 @@ export const analyzeTeamStrength = async (players: Player[]): Promise<AiAnalysis
 };
 
 export const analyzeFixtures = async (fixtures: string[]): Promise<KeyMatch[]> => {
+  ensureAiInitialized();
   const prompt = `
     You are an expert football analyst for Fantasy Premier League (FPL).
     From the following list of upcoming Premier League fixtures, identify the top 3 most 'key matches'.
@@ -75,7 +85,7 @@ export const analyzeFixtures = async (fixtures: string[]): Promise<KeyMatch[]> =
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await ai!.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -124,6 +134,7 @@ export const analyzeFixtures = async (fixtures: string[]): Promise<KeyMatch[]> =
 };
 
 export const predictFinalStandings = async (teams: Team[]): Promise<PredictedStanding[]> => {
+  ensureAiInitialized();
   const teamSummaries = teams
     .sort((a, b) => (b.gameweekHistory[b.gameweekHistory.length - 1]?.totalPoints || 0) - (a.gameweekHistory[a.gameweekHistory.length - 1]?.totalPoints || 0))
     .map((team, index) => {
@@ -154,7 +165,7 @@ Squad Players: ${playerList}
   `;
   
   try {
-    const response = await ai.models.generateContent({
+    const response = await ai!.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
