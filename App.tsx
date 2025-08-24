@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding } from './types';
-import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings } from './services/geminiService';
+import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
+import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
 import { fetchLeagueDetails, fetchFixtures } from './services/fplService';
 import Header from './components/Header';
 import PerformanceChart from './components/PerformanceChart';
@@ -27,6 +27,8 @@ const App: React.FC = () => {
   const [isLoadingKeyMatches, setIsLoadingKeyMatches] = useState<boolean>(false);
   const [predictedStandings, setPredictedStandings] = useState<PredictedStanding[] | null>(null);
   const [isLoadingPredictions, setIsLoadingPredictions] = useState<boolean>(false);
+  const [luckAnalysis, setLuckAnalysis] = useState<LuckAnalysis[] | null>(null);
+  const [isLoadingLuck, setIsLoadingLuck] = useState<boolean>(false);
 
 
   useEffect(() => {
@@ -40,6 +42,7 @@ const App: React.FC = () => {
         setFixtures([]);
         setKeyMatches(null);
         setPredictedStandings(null);
+        setLuckAnalysis(null);
 
         const { teams: leagueTeams, bootstrap } = await fetchLeagueDetails(leagueId);
         setTeams(leagueTeams);
@@ -119,6 +122,27 @@ const App: React.FC = () => {
     }
   }, [teams]);
 
+  const handleAnalyzeLuck = useCallback(async () => {
+    if (teams.length === 0 || !teams[0].players) return;
+
+    setError(null);
+    setIsLoadingLuck(true);
+
+    try {
+        if (!process.env.API_KEY) {
+            throw new Error("API key is not configured.");
+        }
+        const result = await analyzeLeagueLuck(teams);
+        setLuckAnalysis(result);
+    } catch (err) {
+        console.error("Error analyzing league luck:", err);
+        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred during AI analysis.";
+        setError(`Failed to analyze league luck: ${errorMessage}`);
+    } finally {
+        setIsLoadingLuck(false);
+    }
+  }, [teams]);
+
   const handleLeagueSubmit = (id: number) => {
     setTeams([]);
     setAiScores({});
@@ -127,6 +151,7 @@ const App: React.FC = () => {
     setFetchError(null);
     setActiveView(View.Dashboard);
     setPredictedStandings(null);
+    setLuckAnalysis(null);
     setLeagueId(id);
   };
 
@@ -194,6 +219,9 @@ const App: React.FC = () => {
                         predictedStandings={predictedStandings}
                         isLoadingPredictions={isLoadingPredictions}
                         onPredictStandings={handlePredictStandings}
+                        luckAnalysis={luckAnalysis}
+                        isLoadingLuck={isLoadingLuck}
+                        onAnalyzeLuck={handleAnalyzeLuck}
                     />;
         case View.Chart:
             return <PerformanceChart teams={teams} />;

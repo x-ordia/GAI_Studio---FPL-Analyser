@@ -1,7 +1,9 @@
 
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { Team } from '../types';
+import TransferHistory from './TransferHistory';
 
 interface PerformanceChartProps {
   teams: Team[];
@@ -10,23 +12,29 @@ interface PerformanceChartProps {
 const CHART_COLORS = ['#00ff87', '#e90052', '#04f5ff', '#faff00', '#ffa500'];
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
-  const chartData = teams[0]?.gameweekHistory.map((_, index) => {
-    const dataPoint: { name: string; [key: string]: string | number } = {
-      name: `GW${index + 1}`,
-    };
-    teams.forEach(team => {
-      if (team.gameweekHistory[index]) {
-        dataPoint[team.teamName] = team.gameweekHistory[index].totalPoints;
-      }
+  const chartData = useMemo(() => {
+    if (!teams || !teams[0]?.gameweekHistory) {
+      return [];
+    }
+    return teams[0].gameweekHistory.map((_, index) => {
+      const dataPoint: { name: string; [key: string]: string | number } = {
+        name: `GW${index + 1}`,
+      };
+      teams.forEach(team => {
+        if (team.gameweekHistory[index]) {
+          dataPoint[team.teamName] = team.gameweekHistory[index].totalPoints;
+        }
+      });
+      return dataPoint;
     });
-    return dataPoint;
-  });
+  }, [teams]);
+
 
   return (
-    <div className="bg-fpl-purple/60 p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
-      <h2 className="text-2xl font-bold mb-6 text-fpl-text text-center">League Performance Overview</h2>
-      <div style={{ width: '100%', height: 400 }}>
-        <ResponsiveContainer>
+    <>
+      <div className="bg-fpl-purple/60 p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
+        <h2 className="text-2xl font-bold mb-6 text-fpl-text text-center">League Performance Overview</h2>
+        <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={chartData}
             margin={{
@@ -61,7 +69,8 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+      <TransferHistory teams={teams} />
+    </>
   );
 };
 

@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding } from '../types';
+import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckAnalysis } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -195,4 +196,81 @@ Squad Players: ${playerList}
     console.error("Gemini API call for standings prediction failed:", error);
     throw new Error("The AI standings prediction failed.");
   }
+};
+
+export const analyzeLeagueLuck = async (teams: Team[]): Promise<LuckAnalysis[]> => {
+    const teamSummaries = teams.map(team => {
+        const benchPoints = team.liveBenchPoints ?? 0;
+        
+        const highestScorer = team.players.reduce((max, p) => (p.livePoints > max.livePoints ? p : max), { livePoints: -Infinity, name: 'N/A' });
+        
+        const captain = team.players.find(p => p.isCaptain);
+        const captainPoints = captain ? captain.livePoints * (captain.multiplier > 1 ? captain.multiplier : 2) : 0;
+        
+        const potentialCaptainPoints = highestScorer.livePoints * 2;
+        const captaincyPointsLost = Math.max(0, potentialCaptainPoints - captainPoints);
+
+        return `
+Team: ${team.teamName} (${team.managerName})
+- Points left on bench: ${benchPoints}
+- Captaincy points lost: ${captaincyPointsLost} (Captain ${captain?.name} scored ${captainPoints}pts, while the best option ${highestScorer.name} could have returned ${potentialCaptainPoints}pts)
+        `.trim();
+    }).join('\n---\n');
+
+    const prompt = `
+    You are an expert Fantasy Premier League (FPL) analyst. Your task is to analyze the "luck" of each manager in a mini-league for the current gameweek based on their decisions.
+
+    "Luck" in FPL is a combination of good fortune and astute decision-making. A "lucky" manager makes the right calls, while an "unlucky" one makes decisions that backfire. Analyze the following data for each team:
+    - **Points left on bench:** High numbers are unlucky or a bad decision.
+    - **Captaincy points lost:** This is the difference between the points their captain earned and the points they *could* have earned by captaining their highest-scoring player in their 15-man squad. A high number is unlucky or a bad decision.
+
+    Based on this data, provide a "Luck Score" from 0 to 100 for each team, where 0 is extremely unlucky/poor decisions and 100 is perfectly lucky/optimal decisions. Also, provide a brief, one-sentence justification for the score, referencing the data provided.
+
+    Analyze the following teams:
+    ${teamSummaries}
+
+    Return the result ONLY in the specified JSON format. The list should be ordered from luckiest to unluckiest (highest score to lowest).
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        luck_analysis: {
+                            type: Type.ARRAY,
+                            description: "An array of each team's luck analysis, sorted from luckiest to unluckiest.",
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    teamName: { type: Type.STRING },
+                                    luckScore: { type: Type.NUMBER },
+                                    justification: { type: Type.STRING }
+                                },
+                                required: ["teamName", "luckScore", "justification"]
+                            }
+                        }
+                    },
+                    required: ["luck_analysis"]
+                },
+                temperature: 0.4,
+            }
+        });
+        const jsonString = response.text.trim();
+        const result = JSON.parse(jsonString);
+        const analysis = result.luck_analysis || result.luckAnalysis;
+
+        if (Array.isArray(analysis)) {
+            return analysis as LuckAnalysis[];
+        } else {
+            throw new Error("Invalid JSON structure received from API for luck analysis.");
+        }
+    } catch (error) {
+        console.error("Gemini API call for luck analysis failed:", error);
+        throw new Error("The AI luck analysis failed.");
+    }
 };

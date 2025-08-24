@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import type { Team, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding } from '../types';
+import type { Team, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from '../types';
 import Loader from './Loader';
 import { TrophyIcon, StarIcon, ExclamationTriangleIcon, CalendarDaysIcon } from './icons/DashboardIcons';
 import { SparklesIcon } from './icons/SparklesIcon';
 import OwnershipStats from './OwnershipStats';
+import LuckIndex from './LuckIndex';
 
 const GameweekHighlights: React.FC<{ teams: Team[] }> = ({ teams }) => {
     const highlights = useMemo(() => {
@@ -202,9 +203,22 @@ interface DashboardProps {
     predictedStandings: PredictedStanding[] | null;
     isLoadingPredictions: boolean;
     onPredictStandings: () => void;
+    luckAnalysis: LuckAnalysis[] | null;
+    isLoadingLuck: boolean;
+    onAnalyzeLuck: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ teams, keyMatches, isLoadingKeyMatches, predictedStandings, isLoadingPredictions, onPredictStandings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ 
+    teams, 
+    keyMatches, 
+    isLoadingKeyMatches, 
+    predictedStandings, 
+    isLoadingPredictions, 
+    onPredictStandings,
+    luckAnalysis,
+    isLoadingLuck,
+    onAnalyzeLuck
+}) => {
     return (
         <div className="space-y-8">
             <LeagueTable teams={teams} />
@@ -213,8 +227,13 @@ const Dashboard: React.FC<DashboardProps> = ({ teams, keyMatches, isLoadingKeyMa
                 isLoading={isLoadingPredictions}
                 onPredict={onPredictStandings}
             />
-            <OwnershipStats teams={teams} />
             <GameweekHighlights teams={teams} />
+            <LuckIndex 
+                analysis={luckAnalysis}
+                isLoading={isLoadingLuck}
+                onAnalyze={onAnalyzeLuck}
+            />
+            <OwnershipStats teams={teams} />
             <KeyMatchesAnalysis keyMatches={keyMatches} isLoading={isLoadingKeyMatches} />
         </div>
     );
