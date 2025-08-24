@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { Team, Transfer } from '../types';
 import { ArrowUpCircleIcon, ArrowDownCircleIcon } from './icons/ArrowIcons';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
@@ -43,13 +43,12 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
         setOpenGameweek(openGameweek === gameweek ? null : gameweek);
     };
 
-    const latestGameweek = transfersByGameweek.length > 0 ? transfersByGameweek[0].gameweek : null;
-
-    useState(() => {
-        if (latestGameweek && openGameweek === null) {
-            setOpenGameweek(latestGameweek);
+    // Automatically open the latest gameweek with transfers
+    useEffect(() => {
+        if (transfersByGameweek.length > 0 && openGameweek === null) {
+            setOpenGameweek(transfersByGameweek[0].gameweek);
         }
-    });
+    }, [transfersByGameweek, openGameweek]);
 
     if (transfersByGameweek.length === 0) {
         return <p className="text-center text-fpl-text-dark">No transfers have been made in this league yet.</p>;
@@ -76,19 +75,13 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
                                         <ul className="mt-1 space-y-1 pl-4">
                                             {teamData.transfers.map((t, i) => (
                                                 <li key={i} className="text-sm space-y-1">
-                                                    <div className="flex items-center justify-between gap-2 text-fpl-green">
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            <ArrowUpCircleIcon className="w-5 h-5 flex-shrink-0" />
-                                                            <span className="truncate" title={t.playerIn}>{t.playerIn}</span>
-                                                        </div>
-                                                        <span className="font-semibold font-mono bg-fpl-green/20 px-2 py-0.5 rounded text-xs whitespace-nowrap">{t.playerInPoints} pts</span>
+                                                    <div className="flex items-center gap-2 text-fpl-green">
+                                                        <ArrowUpCircleIcon className="w-5 h-5 flex-shrink-0" />
+                                                        <span className="truncate" title={t.playerIn}>{t.playerIn}</span>
                                                     </div>
-                                                    <div className="flex items-center justify-between gap-2 text-fpl-pink">
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
-                                                            <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
-                                                        </div>
-                                                        <span className="font-semibold font-mono bg-fpl-pink/20 px-2 py-0.5 rounded text-xs whitespace-nowrap">{t.playerOutPoints} pts</span>
+                                                    <div className="flex items-center gap-2 text-fpl-pink">
+                                                        <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
+                                                        <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
                                                     </div>
                                                 </li>
                                             ))}
@@ -129,7 +122,7 @@ const SingleTeamView: React.FC<{ team: Team }> = ({ team }) => {
                                         </div>
                                     </td>
                                     <td className="p-3 text-fpl-pink">
-                                        <div className="flex items-center gap-2">
+                                         <div className="flex items-center gap-2">
                                             <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
                                             <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
                                         </div>
