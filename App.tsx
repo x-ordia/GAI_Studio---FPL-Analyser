@@ -8,6 +8,7 @@ import TeamRankings from './components/TeamRankings';
 import Loader from './components/Loader';
 import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
+import PvpAnalysis from './components/PvpAnalysis';
 
 const App: React.FC = () => {
   const [leagueId, setLeagueId] = useState<number | null>(null);
@@ -232,6 +233,8 @@ const App: React.FC = () => {
                         loadingStates={loadingStates}
                         onAnalyze={handleAnalyzeTeam}
                     />;
+        case View.PvP:
+            return <PvpAnalysis teams={teams} fixtures={fixtures} fplTeams={fplTeams} />;
         default:
             return null;
     }

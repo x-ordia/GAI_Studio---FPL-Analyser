@@ -1,4 +1,3 @@
-
 import type { Team, FplBootstrap, FplLeague, FplHistory, FplPicks, FplFixture, FplLiveGameweek, FplTransferHistory, FplElementSummary, FplPlayerGameweekHistory, LivePlayer } from '../types';
 
 const CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
@@ -108,6 +107,7 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
                     team: playerTeam?.name || 'Unknown',
                     livePoints: points,
                     isCaptain: p.is_captain,
+                    isViceCaptain: p.is_vice_captain,
                     multiplier: p.multiplier,
                 };
             }).filter((p): p is LivePlayer => p !== null);

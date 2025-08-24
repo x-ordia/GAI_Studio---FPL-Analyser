@@ -3,6 +3,7 @@ import { View } from '../types';
 import { ChartBarIcon } from './icons/ChartBarIcon';
 import { RobotIcon } from './icons/RobotIcon';
 import { HomeIcon } from './icons/HomeIcon';
+import { UsersGroupIcon } from './icons/UsersGroupIcon';
 
 interface HeaderProps {
   activeView: View;
@@ -46,6 +47,14 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeag
             >
               <RobotIcon className="w-5 h-5" />
               <span className="hidden sm:inline">AI Rankings</span>
+            </button>
+            <button
+              onClick={() => setActiveView(View.PvP)}
+              className={`${buttonBaseClasses} ${activeView === View.PvP ? activeClasses : inactiveClasses}`}
+              aria-label="Show PvP analysis"
+            >
+              <UsersGroupIcon className="w-5 h-5" />
+              <span className="hidden sm:inline">PvP</span>
             </button>
           </nav>
           <button 
