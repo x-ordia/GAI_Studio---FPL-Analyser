@@ -7,8 +7,8 @@ export default defineConfig({
   // Vercel deploys to the root, so we use '/' as the base path.
   base: '/',
   define: {
-    // Per instructions, the app must use process.env.API_KEY.
-    // This makes the build-time environment variable available in the client-side code.
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+    // WARNING: Storing API keys in source code is a security risk.
+    // It is recommended to use environment variables for production deployments.
+    'process.env.API_KEY': JSON.stringify('AIzaSyBcjKt2Z40SgpUXS9qcycvy7tuBZBxEp3s')
   }
 })
