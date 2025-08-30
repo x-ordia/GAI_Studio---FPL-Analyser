@@ -16,6 +16,7 @@ export interface GameweekHistory {
   gameweek: number;
   points: number;
   totalPoints: number;
+  transferCost: number;
 }
 
 export interface Transfer {
@@ -37,6 +38,7 @@ export interface Team {
   liveGwPoints?: number;
   liveCaptain?: { name: string; points: number; captainedPoints: number; };
   liveBenchPoints?: number;
+  activeChip?: string | null;
 }
 
 export interface AiAnalysisResult {
@@ -111,10 +113,12 @@ export interface FplGameweekHistory {
     event: number;
     points: number;
     total_points: number;
+    event_transfers_cost: number;
 }
 
 export interface FplPicks {
     picks: FplPick[];
+    active_chip: string | null;
 }
 
 export interface FplPick {

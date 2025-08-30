@@ -114,6 +114,32 @@ const KeyMatchesAnalysis: React.FC<{
     );
 };
 
+const ChipBadge: React.FC<{ chip: string | null | undefined }> = ({ chip }) => {
+    if (!chip || chip === 'null') return null;
+
+    const chipDetails: { [key: string]: { label: string; tooltip: string; className: string } } = {
+        'bboost': { label: 'BB', tooltip: 'Bench Boost', className: 'bg-blue-500/80' },
+        '3xc': { label: 'TC', tooltip: 'Triple Captain', className: 'bg-purple-500/80' },
+        'freehit': { label: 'FH', tooltip: 'Free Hit', className: 'bg-green-500/80' },
+        'wildcard': { label: 'WC', tooltip: 'Wildcard', className: 'bg-yellow-500/80 text-brand-dark' },
+    };
+
+    const detail = chipDetails[chip];
+    if (!detail) return null;
+
+    return (
+        <div className="group relative flex justify-center">
+            <span className={`px-2 py-0.5 text-xs font-bold text-white rounded-md ${detail.className}`}>
+                {detail.label}
+            </span>
+            <span className="absolute bottom-full mb-2 hidden w-max group-hover:block bg-brand-dark text-white text-xs rounded py-1 px-2 z-10">
+                {detail.tooltip}
+            </span>
+        </div>
+    );
+};
+
+
 const LeagueTable: React.FC<{ teams: Team[] }> = ({ teams }) => {
     const sortedTeams = [...teams].sort((a, b) => {
         const totalA = a.gameweekHistory[a.gameweekHistory.length - 1]?.totalPoints || 0;
@@ -132,6 +158,7 @@ const LeagueTable: React.FC<{ teams: Team[] }> = ({ teams }) => {
                             <th className="p-3">Team</th>
                             <th className="p-3 hidden md:table-cell">Manager</th>
                             <th className="p-3 text-center">GW</th>
+                            <th className="p-3 text-center">Chip</th>
                             <th className="p-3 text-center">Bench</th>
                             <th className="p-3 text-center">Total</th>
                         </tr>
@@ -143,6 +170,9 @@ const LeagueTable: React.FC<{ teams: Team[] }> = ({ teams }) => {
                                 <td className="p-3 font-semibold text-brand-text">{team.teamName}</td>
                                 <td className="p-3 text-brand-text-muted hidden md:table-cell">{team.managerName}</td>
                                 <td className="p-3 text-center font-bold text-brand-success">{team.liveGwPoints ?? '-'}</td>
+                                <td className="p-3 text-center">
+                                    <ChipBadge chip={team.activeChip} />
+                                </td>
                                 <td className="p-3 text-center font-bold text-brand-danger">{team.liveBenchPoints ?? '-'}</td>
                                 <td className="p-3 text-center font-bold text-brand-text">{team.gameweekHistory[team.gameweekHistory.length - 1]?.totalPoints || 0}</td>
                             </tr>

@@ -138,6 +138,7 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
             gameweek: gw.event,
             points: gw.points,
             totalPoints: gw.total_points,
+            transferCost: gw.event_transfers_cost,
         }));
 
         return {
@@ -150,6 +151,7 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
             liveGwPoints,
             liveBenchPoints,
             liveCaptain,
+            activeChip: picksData.active_chip,
         };
     });
 

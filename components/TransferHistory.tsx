@@ -11,10 +11,17 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
     const [openGameweek, setOpenGameweek] = useState<number | null>(null);
 
     const transfersByGameweek = useMemo(() => {
-        const grouped: { [key: number]: { teamName: string; managerName: string; transfers: Transfer[] }[] } = {};
+        const grouped: { [key: number]: { teamName: string; managerName: string; transfers: Transfer[]; transferCost: number }[] } = {};
 
         teams.forEach(team => {
             if (team.transferHistory) {
+                const costMap = new Map<number, number>();
+                team.gameweekHistory.forEach(h => {
+                    if (h.transferCost > 0) {
+                        costMap.set(h.gameweek, h.transferCost);
+                    }
+                });
+
                 team.transferHistory.forEach(transfer => {
                     const gameweek = transfer.gameweek;
                     if (!grouped[gameweek]) {
@@ -24,7 +31,8 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
                     let teamEntry = grouped[gameweek].find(t => t.managerName === team.managerName);
                     
                     if (!teamEntry) {
-                        teamEntry = { teamName: team.teamName, managerName: team.managerName, transfers: [] };
+                        const transferCost = costMap.get(gameweek) || 0;
+                        teamEntry = { teamName: team.teamName, managerName: team.managerName, transfers: [], transferCost };
                         grouped[gameweek].push(teamEntry);
                     }
                     
@@ -70,7 +78,15 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
                             <div className="space-y-4">
                                 {data.sort((a,b) => a.teamName.localeCompare(b.teamName)).map(teamData => (
                                     <div key={teamData.managerName}>
-                                        <p className="font-semibold text-brand-text">{teamData.teamName} <span className="text-brand-text-muted text-sm">({teamData.managerName})</span></p>
+                                        <p className="font-semibold text-brand-text flex items-center flex-wrap gap-x-2 gap-y-1">
+                                            {teamData.teamName} 
+                                            <span className="text-brand-text-muted text-sm">({teamData.managerName})</span>
+                                            {teamData.transferCost > 0 && (
+                                                <span className="text-xs font-bold text-brand-danger bg-brand-danger/20 px-2 py-0.5 rounded-full">
+                                                    -{teamData.transferCost} PTS
+                                                </span>
+                                            )}
+                                        </p>
                                         <ul className="mt-1 space-y-1 pl-4">
                                             {teamData.transfers.map((t, i) => (
                                                 <li key={i} className="text-sm space-y-1">
@@ -97,6 +113,22 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
 };
 
 const SingleTeamView: React.FC<{ team: Team }> = ({ team }) => {
+    const transfersByGameweek = useMemo(() => {
+        const grouped: { [gw: number]: Transfer[] } = {};
+        team.transferHistory.forEach(t => {
+            if (!grouped[t.gameweek]) {
+                grouped[t.gameweek] = [];
+            }
+            grouped[t.gameweek].push(t);
+        });
+        return Object.entries(grouped)
+            .map(([gw, transfers]) => ({
+                gameweek: parseInt(gw),
+                transfers,
+            }))
+            .sort((a, b) => b.gameweek - a.gameweek);
+    }, [team.transferHistory]);
+
     return (
         <div>
             <h3 className="text-xl font-bold text-brand-text mb-2 text-center">{team.teamName}'s Transfer History</h3>
@@ -104,43 +136,62 @@ const SingleTeamView: React.FC<{ team: Team }> = ({ team }) => {
                 <table className="w-full text-left">
                     <thead className="bg-black/20 text-sm text-brand-text-muted uppercase tracking-wider">
                         <tr>
-                            <th className="p-3">Gameweek</th>
                             <th className="p-3">Player In</th>
                             <th className="p-3">Player Out</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {team.transferHistory.length > 0 ? (
-                            team.transferHistory.map((t, i) => (
-                                <tr key={i} className="border-t border-white/10 bg-brand-surface/80">
-                                    <td className="p-3 font-semibold text-brand-text-muted w-28">GW {t.gameweek}</td>
-                                    <td className="p-3 text-brand-success">
-                                        <div className="flex items-center gap-2">
-                                            <ArrowUpCircleIcon className="w-5 h-5 flex-shrink-0" />
-                                            <span className="truncate" title={t.playerIn}>{t.playerIn}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-3 text-brand-danger">
-                                         <div className="flex items-center gap-2">
-                                            <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
-                                            <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
+                    {team.transferHistory.length > 0 ? (
+                        transfersByGameweek.map(({ gameweek, transfers }) => {
+                            const gwHistory = team.gameweekHistory.find(h => h.gameweek === gameweek);
+                            const cost = gwHistory?.transferCost || 0;
+                            return (
+                                <tbody key={gameweek} className="border-t border-white/10">
+                                    <tr className="bg-brand-dark/30">
+                                        <th colSpan={2} className="p-2 font-semibold text-brand-text-muted">
+                                            <div className="flex justify-between items-center">
+                                                <span>Gameweek {gameweek}</span>
+                                                {cost > 0 && (
+                                                    <span className="text-xs font-bold text-brand-danger bg-brand-danger/20 px-2 py-0.5 rounded-full">
+                                                        -{cost} PTS HIT
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </th>
+                                    </tr>
+                                    {transfers.map((t, i) => (
+                                        <tr key={`${t.playerIn}-${i}`} className="bg-brand-surface/80">
+                                            <td className="p-3 text-brand-success">
+                                                <div className="flex items-center gap-2">
+                                                    <ArrowUpCircleIcon className="w-5 h-5 flex-shrink-0" />
+                                                    <span className="truncate" title={t.playerIn}>{t.playerIn}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-3 text-brand-danger">
+                                                 <div className="flex items-center gap-2">
+                                                    <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
+                                                    <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            );
+                        })
+                    ) : (
+                         <tbody>
                             <tr>
-                                <td colSpan={3} className="p-4 text-center text-brand-text-muted bg-brand-surface/80">
+                                <td colSpan={2} className="p-4 text-center text-brand-text-muted bg-brand-surface/80">
                                     No transfers recorded for this team.
                                 </td>
                             </tr>
-                        )}
-                    </tbody>
+                        </tbody>
+                    )}
                 </table>
             </div>
         </div>
     );
 };
+
 
 const TransferHistory: React.FC<TransferHistoryProps> = ({ teams }) => {
     const [selectedView, setSelectedView] = useState<string>('all');
