@@ -3,33 +3,6 @@ import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckA
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
-export const generateStadiumImage = async (): Promise<string> => {
-    const prompt = `An aesthetic, dramatic, cinematic, low-angle shot of a single football on the green grass of a brightly lit stadium pitch at night. The stadium is full of cheering fans in the background, which are slightly blurred with a beautiful bokeh effect. The lighting is professional and highlights the texture of the football and the grass.`;
-
-    try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/jpeg',
-              aspectRatio: '16:9',
-            },
-        });
-        
-        const base64ImageBytes: string | undefined = response.generatedImages?.[0]?.image?.imageBytes;
-        
-        if (!base64ImageBytes) {
-            throw new Error("No image bytes returned from the API.");
-        }
-        
-        return base64ImageBytes;
-    } catch (error) {
-        console.error("Gemini image generation failed:", error);
-        throw new Error("The AI image generation failed. Please check your API key and try again.");
-    }
-};
-
 export const analyzeTeamStrength = async (players: Player[]): Promise<AiAnalysisResult> => {
   const playerList = players.map(p => `- ${p.name} (${p.position} from ${p.team})`).join('\n');
 

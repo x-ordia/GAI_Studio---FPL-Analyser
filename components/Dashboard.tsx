@@ -64,11 +64,11 @@ const GameweekHighlights: React.FC<{ teams: Team[] }> = ({ teams }) => {
 };
 
 const KeyMatchesAnalysis: React.FC<{ 
-    keyMatches: KeyMatch[] | null,
-    isLoading: boolean 
-}> = ({ keyMatches, isLoading }) => {
+    keyMatches: KeyMatch[] | null;
+    isLoading: boolean;
+    onAnalyze: () => void;
+}> = ({ keyMatches, isLoading, onAnalyze }) => {
     if (!process.env.API_KEY) return null;
-    if (!keyMatches && !isLoading) return null;
 
     return (
         <div className="bg-brand-surface p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
@@ -76,7 +76,24 @@ const KeyMatchesAnalysis: React.FC<{
                 <CalendarDaysIcon className="w-6 h-6" />
                 AI: Key Match Analysis
             </h2>
-            {isLoading && <div className="text-center py-4"><Loader /></div>}
+            {!keyMatches && !isLoading && (
+                <div className="text-center">
+                    <p className="text-brand-text-muted mb-4">Let the AI identify the most interesting matches of the gameweek.</p>
+                    <button
+                        onClick={onAnalyze}
+                        className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-brand-accent text-white shadow-lg shadow-brand-accent/20"
+                    >
+                        <SparklesIcon className="w-5 h-5" />
+                        <span>Analyze Fixtures</span>
+                    </button>
+                </div>
+            )}
+            {isLoading && (
+                <div className="text-center py-4">
+                    <Loader />
+                    <p className="text-brand-text-muted mt-2">AI is analyzing the gameweek fixtures...</p>
+                </div>
+            )}
             {!isLoading && keyMatches && keyMatches.length > 0 && (
                  <div className="bg-black/20 p-4 rounded-lg border-l-4 border-brand-accent">
                     <h3 className="font-bold text-brand-accent mb-2">Key Matches to Watch</h3>
@@ -90,8 +107,8 @@ const KeyMatchesAnalysis: React.FC<{
                     </ul>
                 </div>
             )}
-             {!isLoading && (!keyMatches || keyMatches.length === 0) && (
-                <p className="text-brand-text-muted text-center">No key matches were identified for the upcoming gameweek.</p>
+            {!isLoading && keyMatches && keyMatches.length === 0 && (
+                <p className="text-brand-text-muted text-center">The AI found no standout key matches for the upcoming gameweek.</p>
             )}
         </div>
     );
@@ -200,6 +217,7 @@ interface DashboardProps {
     fplTeams: FplTeamInfo[];
     keyMatches: KeyMatch[] | null;
     isLoadingKeyMatches: boolean;
+    onAnalyzeKeyMatches: () => void;
     predictedStandings: PredictedStanding[] | null;
     isLoadingPredictions: boolean;
     onPredictStandings: () => void;
@@ -212,6 +230,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     teams, 
     keyMatches, 
     isLoadingKeyMatches, 
+    onAnalyzeKeyMatches,
     predictedStandings, 
     isLoadingPredictions, 
     onPredictStandings,
@@ -234,7 +253,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                 onAnalyze={onAnalyzeLuck}
             />
             <OwnershipStats teams={teams} />
-            <KeyMatchesAnalysis keyMatches={keyMatches} isLoading={isLoadingKeyMatches} />
+            <KeyMatchesAnalysis 
+                keyMatches={keyMatches} 
+                isLoading={isLoadingKeyMatches} 
+                onAnalyze={onAnalyzeKeyMatches} 
+            />
         </div>
     );
 };

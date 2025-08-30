@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
-import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck, generateStadiumImage } from './services/geminiService';
+import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
 import { fetchLeagueDetails, fetchFixtures } from './services/fplService';
 import Header from './components/Header';
 import PerformanceChart from './components/PerformanceChart';
@@ -9,7 +9,8 @@ import Loader from './components/Loader';
 import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
 import PvpAnalysis from './components/PvpAnalysis';
-import { motion, AnimatePresence } from 'framer-motion';
+// FIX: Import Transition type from framer-motion to resolve type error.
+import { motion, AnimatePresence, Transition } from 'framer-motion';
 
 const pageVariants = {
   initial: {
@@ -26,7 +27,7 @@ const pageVariants = {
   }
 };
 
-const pageTransition = {
+const pageTransition: Transition = {
   type: "tween",
   ease: "anticipate",
   duration: 0.5
@@ -52,36 +53,6 @@ const App: React.FC = () => {
   const [isLoadingPredictions, setIsLoadingPredictions] = useState<boolean>(false);
   const [luckAnalysis, setLuckAnalysis] = useState<LuckAnalysis[] | null>(null);
   const [isLoadingLuck, setIsLoadingLuck] = useState<boolean>(false);
-  
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
-  const [isGeneratingBackground, setIsGeneratingBackground] = useState<boolean>(false);
-
-
-  useEffect(() => {
-    const loadBackgroundImage = async () => {
-      const storedImage = localStorage.getItem('fplAiRankerBackground');
-      if (storedImage) {
-        setBackgroundImageUrl(storedImage);
-        return;
-      }
-
-      if (process.env.API_KEY) {
-        try {
-          setIsGeneratingBackground(true);
-          const base64Image = await generateStadiumImage();
-          const imageUrl = `data:image/jpeg;base64,${base64Image}`;
-          setBackgroundImageUrl(imageUrl);
-          localStorage.setItem('fplAiRankerBackground', imageUrl);
-        } catch (err) {
-          console.error("Failed to generate background image:", err);
-        } finally {
-          setIsGeneratingBackground(false);
-        }
-      }
-    };
-
-    loadBackgroundImage();
-  }, []);
 
   useEffect(() => {
     if (!leagueId) return;
@@ -104,18 +75,6 @@ const App: React.FC = () => {
         if (nextGameweek) {
           const fixtureData = await fetchFixtures(nextGameweek.id);
           setFixtures(fixtureData);
-
-          if (process.env.API_KEY) {
-            setIsLoadingKeyMatches(true);
-            const fixtureNames = fixtureData.map(f => {
-              const home = bootstrap.teams.find(t => t.id === f.team_h)?.name || '...';
-              const away = bootstrap.teams.find(t => t.id === f.team_a)?.name || '...';
-              return `${home} vs ${away}`;
-            });
-            const analyzedMatches = await analyzeFixtures(fixtureNames);
-            setKeyMatches(analyzedMatches);
-            setIsLoadingKeyMatches(false);
-          }
         }
 
       } catch (err) {
@@ -152,6 +111,31 @@ const App: React.FC = () => {
       setLoadingStates(prev => ({ ...prev, [teamId]: false }));
     }
   }, [teams]);
+
+  const handleAnalyzeKeyMatches = useCallback(async () => {
+    if (fixtures.length === 0 || fplTeams.length === 0) return;
+
+    setError(null);
+    setIsLoadingKeyMatches(true);
+    try {
+      if (!process.env.API_KEY) {
+        throw new Error("API key is not configured.");
+      }
+      const fixtureNames = fixtures.map(f => {
+        const home = fplTeams.find(t => t.id === f.team_h)?.name || '...';
+        const away = fplTeams.find(t => t.id === f.team_a)?.name || '...';
+        return `${home} vs ${away}`;
+      });
+      const analyzedMatches = await analyzeFixtures(fixtureNames);
+      setKeyMatches(analyzedMatches);
+    } catch (err) {
+      console.error("Error analyzing key matches:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred during AI analysis.";
+      setError(`Failed to analyze key matches: ${errorMessage}`);
+    } finally {
+      setIsLoadingKeyMatches(false);
+    }
+  }, [fixtures, fplTeams]);
 
   const handlePredictStandings = useCallback(async () => {
     if (teams.length === 0) return;
@@ -267,6 +251,7 @@ const App: React.FC = () => {
                           fplTeams={fplTeams}
                           keyMatches={keyMatches}
                           isLoadingKeyMatches={isLoadingKeyMatches}
+                          onAnalyzeKeyMatches={handleAnalyzeKeyMatches}
                           predictedStandings={predictedStandings}
                           isLoadingPredictions={isLoadingPredictions}
                           onPredictStandings={handlePredictStandings}
@@ -322,20 +307,13 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-cover bg-fixed bg-center transition-all duration-1000"
+      className="min-h-screen bg-cover bg-fixed bg-center"
       style={{ 
-        backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : 'none',
+        backgroundImage: `url('https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')`,
       }}
     >
       <div className="min-h-screen text-brand-text font-sans overflow-x-hidden bg-brand-dark/80 backdrop-blur-[2px]">
         {renderAppContent()}
-
-        {isGeneratingBackground && (
-          <div className="fixed bottom-4 right-4 bg-brand-surface text-brand-text-muted px-4 py-2 rounded-lg shadow-lg text-sm z-50 flex items-center gap-2 animate-fadeIn">
-            <Loader />
-            <span>Generating aesthetic background...</span>
-          </div>
-        )}
       </div>
     </div>
   );
