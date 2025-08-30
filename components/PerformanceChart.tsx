@@ -11,20 +11,37 @@ const CHART_COLORS = ['#3b82f6', '#4ade80', '#f43f5e', '#facc15', '#06b6d4', '#a
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
   const chartData = useMemo(() => {
-    if (!teams || !teams[0]?.gameweekHistory) {
+    if (!teams || teams.length === 0) {
       return [];
     }
-    return teams[0].gameweekHistory.map((_, index) => {
-      const dataPoint: { name: string; [key: string]: string | number } = {
-        name: `GW${index + 1}`,
+
+    // Find the maximum gameweek number across all teams to define the chart's x-axis length.
+    const maxGameweek = teams.reduce((max, team) => {
+      const lastEntry = team.gameweekHistory[team.gameweekHistory.length - 1];
+      return lastEntry && lastEntry.gameweek > max ? lastEntry.gameweek : max;
+    }, 0);
+
+    if (maxGameweek === 0) {
+      return [];
+    }
+
+    const data = [];
+    // Iterate from gameweek 1 up to the max gameweek.
+    for (let gw = 1; gw <= maxGameweek; gw++) {
+      // FIX: Update dataPoint type to allow string values for the 'name' property, resolving the index signature conflict.
+      const dataPoint: { name: string; [key: string]: string | number | null } = {
+        name: `GW${gw}`,
       };
+
+      // For each team, find their total points for the current gameweek.
       teams.forEach(team => {
-        if (team.gameweekHistory[index]) {
-          dataPoint[team.teamName] = team.gameweekHistory[index].totalPoints;
-        }
+        const historyEntry = team.gameweekHistory.find(h => h.gameweek === gw);
+        // If an entry exists, use the points. Recharts will create a gap for null values.
+        dataPoint[team.teamName] = historyEntry ? historyEntry.totalPoints : null;
       });
-      return dataPoint;
-    });
+      data.push(dataPoint);
+    }
+    return data;
   }, [teams]);
 
 
@@ -58,12 +75,13 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
             {teams.map((team, index) => (
               <Line
                 key={team.id}
-                type="monotone"
+                type="linear"
                 dataKey={team.teamName}
                 stroke={CHART_COLORS[index % CHART_COLORS.length]}
                 strokeWidth={3}
                 dot={{ r: 0 }}
                 activeDot={{ r: 8, strokeWidth: 2, fill: CHART_COLORS[index % CHART_COLORS.length] }}
+                connectNulls={false}
               />
             ))}
           </LineChart>
