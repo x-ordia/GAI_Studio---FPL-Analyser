@@ -57,6 +57,17 @@
         background-size: 200% 200%;
         animation: backgroundPan 15s ease infinite;
       }
+      .responsive-bg {
+        /* Mobile-first: Portrait image for narrow screens */
+        background-image: url('https://images.unsplash.com/photo-1623711146316-e94fa5c239d9?auto=format&fit=crop&w=750&q=80');
+      }
+
+      /* Desktop: Landscape image for wider screens */
+      @media (min-width: 768px) {
+        .responsive-bg {
+          background-image: url('https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?auto=format&fit=crop&w=1920&q=80');
+        }
+      }
     </style>
 <script type="importmap">
 {

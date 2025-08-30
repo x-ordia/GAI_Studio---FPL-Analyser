@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
 import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
@@ -307,10 +309,7 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-cover bg-fixed bg-center"
-      style={{ 
-        backgroundImage: `url('https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')`,
-      }}
+      className="responsive-bg min-h-screen bg-cover bg-fixed bg-center"
     >
       <div className="min-h-screen text-brand-text font-sans overflow-x-hidden bg-brand-dark/80 backdrop-blur-[2px]">
         {renderAppContent()}
