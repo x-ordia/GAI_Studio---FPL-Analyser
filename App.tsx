@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
 import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
@@ -198,14 +199,61 @@ const App: React.FC = () => {
     setTeams([]);
   };
 
-  const renderAppContent = () => {
+  const renderView = () => {
+    if (teams.length === 0) {
+        return (
+            <div className="text-center py-10 bg-brand-surface rounded-xl border border-white/10">
+                <p className="text-xl text-brand-text-muted">No teams found in this league.</p>
+                <button 
+                  onClick={handleChangeLeague}
+                  className="mt-4 px-5 py-2.5 bg-brand-accent text-white font-bold rounded-lg hover:bg-brand-accent-hover transition-colors shadow-lg shadow-brand-accent/20"
+              >
+                  Try a Different League
+              </button>
+            </div>
+        );
+    }
+
+    switch(activeView) {
+        case View.Dashboard:
+            return <Dashboard 
+                        teams={teams}
+                        fixtures={fixtures}
+                        fplTeams={fplTeams}
+                        keyMatches={keyMatches}
+                        isLoadingKeyMatches={isLoadingKeyMatches}
+                        onAnalyzeKeyMatches={handleAnalyzeKeyMatches}
+                        predictedStandings={predictedStandings}
+                        isLoadingPredictions={isLoadingPredictions}
+                        onPredictStandings={handlePredictStandings}
+                        luckAnalysis={luckAnalysis}
+                        isLoadingLuck={isLoadingLuck}
+                        onAnalyzeLuck={handleAnalyzeLuck}
+                    />;
+        case View.Chart:
+            return <PerformanceChart teams={teams} />;
+        case View.Rankings:
+            return <TeamRankings
+                        teams={teams}
+                        aiScores={aiScores}
+                        loadingStates={loadingStates}
+                        onAnalyze={handleAnalyzeTeam}
+                    />;
+        case View.PvP:
+            return <PvpAnalysis teams={teams} fixtures={fixtures} fplTeams={fplTeams} />;
+        default:
+            return null;
+    }
+  }
+
+  const renderContent = () => {
     if (!leagueId) {
       return <LeagueInput onSubmit={handleLeagueSubmit} />;
     }
   
     if (isFetchingLeague) {
       return (
-        <div className="min-h-screen text-brand-text flex flex-col justify-center items-center">
+        <div className="h-full flex flex-col justify-center items-center">
           <Loader />
           <p className="text-xl mt-6 font-semibold tracking-wide">Fetching FPL League Data for ID: {leagueId}...</p>
           <p className="text-brand-text-muted mt-1">Please hold on, this may take a moment.</p>
@@ -215,7 +263,7 @@ const App: React.FC = () => {
   
     if (fetchError) {
       return (
-        <div className="min-h-screen text-brand-text flex justify-center items-center p-4">
+        <div className="h-full flex justify-center items-center p-4">
           <div className="bg-brand-danger/10 border border-brand-danger text-brand-text px-6 py-4 rounded-lg text-center max-w-lg shadow-2xl">
             <h2 className="text-2xl font-bold mb-2">Failed to Load League Data</h2>
             <p className="text-brand-danger/90">{fetchError}</p>
@@ -229,58 +277,9 @@ const App: React.FC = () => {
         </div>
       );
     }
-  
-    const renderView = () => {
-      if (teams.length === 0) {
-          return (
-              <div className="text-center py-10 bg-brand-surface rounded-xl border border-white/10">
-                  <p className="text-xl text-brand-text-muted">No teams found in this league.</p>
-                  <button 
-                    onClick={handleChangeLeague}
-                    className="mt-4 px-5 py-2.5 bg-brand-accent text-white font-bold rounded-lg hover:bg-brand-accent-hover transition-colors shadow-lg shadow-brand-accent/20"
-                >
-                    Try a Different League
-                </button>
-              </div>
-          );
-      }
-  
-      switch(activeView) {
-          case View.Dashboard:
-              return <Dashboard 
-                          teams={teams}
-                          fixtures={fixtures}
-                          fplTeams={fplTeams}
-                          keyMatches={keyMatches}
-                          isLoadingKeyMatches={isLoadingKeyMatches}
-                          onAnalyzeKeyMatches={handleAnalyzeKeyMatches}
-                          predictedStandings={predictedStandings}
-                          isLoadingPredictions={isLoadingPredictions}
-                          onPredictStandings={handlePredictStandings}
-                          luckAnalysis={luckAnalysis}
-                          isLoadingLuck={isLoadingLuck}
-                          onAnalyzeLuck={handleAnalyzeLuck}
-                      />;
-          case View.Chart:
-              return <PerformanceChart teams={teams} />;
-          case View.Rankings:
-              return <TeamRankings
-                          teams={teams}
-                          aiScores={aiScores}
-                          loadingStates={loadingStates}
-                          onAnalyze={handleAnalyzeTeam}
-                      />;
-          case View.PvP:
-              return <PvpAnalysis teams={teams} fixtures={fixtures} fplTeams={fplTeams} />;
-          default:
-              return null;
-      }
-    }
 
     return (
-      <>
-        <Header activeView={activeView} setActiveView={setActiveView} onChangeLeague={handleChangeLeague} />
-        <main className="container mx-auto p-4 md:p-8">
+        <main className="container mx-auto p-4 md:p-8 pb-20 sm:pb-8">
           {error && (
               <div className="bg-brand-danger/10 border border-brand-danger text-brand-text px-4 py-3 rounded-lg relative mb-6" role="alert">
                   <strong className="font-bold">Error: </strong>
@@ -303,16 +302,22 @@ const App: React.FC = () => {
             </motion.div>
           </AnimatePresence>
         </main>
-      </>
     );
   }
+  
+  const showHeader = leagueId && !isFetchingLeague && !fetchError;
 
   return (
     <div 
       className="responsive-bg min-h-screen bg-cover bg-fixed bg-center"
     >
-      <div className="min-h-screen text-brand-text font-sans overflow-x-hidden bg-brand-dark/80 backdrop-blur-[2px]">
-        {renderAppContent()}
+      <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/80 backdrop-blur-[2px] overflow-hidden">
+        {showHeader &&
+            <Header activeView={activeView} setActiveView={setActiveView} onChangeLeague={handleChangeLeague} />
+        }
+        <div className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ const LeagueInput: React.FC<LeagueInputProps> = ({ onSubmit }) => {
   };
 
   return (
-    <div className="min-h-screen text-brand-text flex justify-center items-center p-4">
+    <div className="min-h-full text-brand-text flex justify-center items-center p-4">
       <div className="w-full max-w-md bg-brand-surface backdrop-blur-sm border border-white/10 rounded-2xl shadow-2xl shadow-brand-accent/10 p-8 text-center animate-fadeIn">
         <h1 className="text-3xl md:text-4xl font-bold text-brand-text tracking-wider mb-2">
           FPL<span className="text-brand-accent">.AI</span> Ranker
