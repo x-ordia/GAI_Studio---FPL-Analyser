@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import type { Team, PlayerOwnership } from '../types';
 import { UsersIcon, BoltIcon } from './icons/DashboardIcons';
@@ -8,7 +9,7 @@ interface OwnershipStatsProps {
 
 const StatList: React.FC<{ title: string; icon: React.ReactNode; players: PlayerOwnership[], barColor: string }> = ({ title, icon, players, barColor }) => (
     <div className="bg-black/20 p-4 rounded-lg flex-1 min-w-[280px] w-full sm:w-auto">
-        <h3 className="font-bold text-fpl-text mb-3 flex items-center gap-2">
+        <h3 className="font-bold text-brand-text mb-3 flex items-center gap-2">
             {icon}
             {title}
         </h3>
@@ -16,10 +17,10 @@ const StatList: React.FC<{ title: string; icon: React.ReactNode; players: Player
             {players.map((player, index) => (
                 <li key={player.id} className="text-sm">
                     <div className="flex justify-between items-center mb-0.5">
-                        <span className="font-semibold text-fpl-text truncate pr-2" title={player.name}>{index + 1}. {player.name}</span>
-                        <span className="font-mono text-fpl-text-dark">{player.percentage.toFixed(1)}%</span>
+                        <span className="font-semibold text-brand-text truncate pr-2" title={player.name}>{index + 1}. {player.name}</span>
+                        <span className="font-mono text-brand-text-muted">{player.percentage.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-fpl-purple rounded-full h-1.5">
+                    <div className="w-full bg-brand-dark rounded-full h-1.5">
                         <div 
                             className={`${barColor} h-1.5 rounded-full`} 
                             style={{ width: `${player.percentage}%` }}
@@ -80,20 +81,20 @@ const OwnershipStats: React.FC<OwnershipStatsProps> = ({ teams }) => {
     }
 
     return (
-        <div className="bg-fpl-purple/60 p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
-            <h2 className="text-xl font-bold mb-4 text-fpl-text text-center">Player Ownership Stats</h2>
+        <div className="bg-brand-surface p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
+            <h2 className="text-xl font-bold mb-4 text-brand-text text-center">Player Ownership Stats</h2>
             <div className="flex flex-wrap gap-4 justify-center">
                 <StatList 
                     title="Top 10 Most Owned" 
-                    icon={<UsersIcon className="w-5 h-5 text-fpl-green" />}
+                    icon={<UsersIcon className="w-5 h-5 text-brand-success" />}
                     players={mostOwned}
-                    barColor="bg-fpl-green"
+                    barColor="bg-brand-success"
                 />
                 <StatList 
                     title="Top 10 Differentials" 
-                    icon={<BoltIcon className="w-5 h-5 text-fpl-pink" />}
+                    icon={<BoltIcon className="w-5 h-5 text-brand-danger" />}
                     players={topDifferentials}
-                    barColor="bg-fpl-pink"
+                    barColor="bg-brand-danger"
                 />
             </div>
         </div>

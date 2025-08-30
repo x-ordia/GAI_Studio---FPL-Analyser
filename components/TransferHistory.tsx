@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import type { Team, Transfer } from '../types';
 import { ArrowUpCircleIcon, ArrowDownCircleIcon } from './icons/ArrowIcons';
@@ -51,16 +50,16 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
     }, [transfersByGameweek, openGameweek]);
 
     if (transfersByGameweek.length === 0) {
-        return <p className="text-center text-fpl-text-dark">No transfers have been made in this league yet.</p>;
+        return <p className="text-center text-brand-text-muted">No transfers have been made in this league yet.</p>;
     }
 
     return (
         <div className="space-y-2">
             {transfersByGameweek.map(({ gameweek, data }) => (
-                <div key={gameweek} className="bg-fpl-purple/80 rounded-lg overflow-hidden border border-white/10">
+                <div key={gameweek} className="bg-brand-dark/50 rounded-lg overflow-hidden border border-white/10">
                     <button
                         onClick={() => toggleGameweek(gameweek)}
-                        className="w-full flex justify-between items-center p-4 text-left font-bold text-lg text-fpl-text"
+                        className="w-full flex justify-between items-center p-4 text-left font-bold text-lg text-brand-text hover:bg-white/5 transition-colors"
                         aria-expanded={openGameweek === gameweek}
                     >
                         <span>Gameweek {gameweek}</span>
@@ -71,15 +70,15 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
                             <div className="space-y-4">
                                 {data.sort((a,b) => a.teamName.localeCompare(b.teamName)).map(teamData => (
                                     <div key={teamData.managerName}>
-                                        <p className="font-semibold text-fpl-text">{teamData.teamName} <span className="text-fpl-text-dark text-sm">({teamData.managerName})</span></p>
+                                        <p className="font-semibold text-brand-text">{teamData.teamName} <span className="text-brand-text-muted text-sm">({teamData.managerName})</span></p>
                                         <ul className="mt-1 space-y-1 pl-4">
                                             {teamData.transfers.map((t, i) => (
                                                 <li key={i} className="text-sm space-y-1">
-                                                    <div className="flex items-center gap-2 text-fpl-green">
+                                                    <div className="flex items-center gap-2 text-brand-success">
                                                         <ArrowUpCircleIcon className="w-5 h-5 flex-shrink-0" />
                                                         <span className="truncate" title={t.playerIn}>{t.playerIn}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-fpl-pink">
+                                                    <div className="flex items-center gap-2 text-brand-danger">
                                                         <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
                                                         <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
                                                     </div>
@@ -100,10 +99,10 @@ const AllTransfersView: React.FC<{ teams: Team[] }> = ({ teams }) => {
 const SingleTeamView: React.FC<{ team: Team }> = ({ team }) => {
     return (
         <div>
-            <h3 className="text-xl font-bold text-fpl-text mb-2 text-center">{team.teamName}'s Transfer History</h3>
+            <h3 className="text-xl font-bold text-brand-text mb-2 text-center">{team.teamName}'s Transfer History</h3>
              <div className="overflow-x-auto rounded-lg border border-white/10">
                 <table className="w-full text-left">
-                    <thead className="bg-black/20 text-sm text-fpl-text-dark uppercase tracking-wider">
+                    <thead className="bg-black/20 text-sm text-brand-text-muted uppercase tracking-wider">
                         <tr>
                             <th className="p-3">Gameweek</th>
                             <th className="p-3">Player In</th>
@@ -113,15 +112,15 @@ const SingleTeamView: React.FC<{ team: Team }> = ({ team }) => {
                     <tbody>
                         {team.transferHistory.length > 0 ? (
                             team.transferHistory.map((t, i) => (
-                                <tr key={i} className="border-t border-white/10 bg-fpl-purple/80">
-                                    <td className="p-3 font-semibold text-fpl-text-dark w-28">GW {t.gameweek}</td>
-                                    <td className="p-3 text-fpl-green">
+                                <tr key={i} className="border-t border-white/10 bg-brand-surface/80">
+                                    <td className="p-3 font-semibold text-brand-text-muted w-28">GW {t.gameweek}</td>
+                                    <td className="p-3 text-brand-success">
                                         <div className="flex items-center gap-2">
                                             <ArrowUpCircleIcon className="w-5 h-5 flex-shrink-0" />
                                             <span className="truncate" title={t.playerIn}>{t.playerIn}</span>
                                         </div>
                                     </td>
-                                    <td className="p-3 text-fpl-pink">
+                                    <td className="p-3 text-brand-danger">
                                          <div className="flex items-center gap-2">
                                             <ArrowDownCircleIcon className="w-5 h-5 flex-shrink-0" />
                                             <span className="truncate" title={t.playerOut}>{t.playerOut}</span>
@@ -131,7 +130,7 @@ const SingleTeamView: React.FC<{ team: Team }> = ({ team }) => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={3} className="p-4 text-center text-fpl-text-dark bg-fpl-purple/80">
+                                <td colSpan={3} className="p-4 text-center text-brand-text-muted bg-brand-surface/80">
                                     No transfers recorded for this team.
                                 </td>
                             </tr>
@@ -152,18 +151,18 @@ const TransferHistory: React.FC<TransferHistoryProps> = ({ teams }) => {
     }, [selectedView, teams]);
     
     return (
-        <div className="bg-fpl-purple/60 p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10 mt-8">
-            <h2 className="text-2xl font-bold mb-4 text-fpl-text text-center">League Transfer History</h2>
+        <div className="bg-brand-surface p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10 mt-8">
+            <h2 className="text-2xl font-bold mb-4 text-brand-text text-center">League Transfer History</h2>
             
             <div className="mb-6 max-w-sm mx-auto">
-                <label htmlFor="transfer-view-select" className="block text-sm font-medium text-fpl-text-dark mb-1 text-center">
+                <label htmlFor="transfer-view-select" className="block text-sm font-medium text-brand-text-muted mb-1 text-center">
                     Display transfers for:
                 </label>
                 <select
                     id="transfer-view-select"
                     value={selectedView}
                     onChange={(e) => setSelectedView(e.target.value)}
-                    className="w-full bg-fpl-purple-light border-2 border-fpl-purple rounded-lg text-fpl-text p-2 transition-colors focus:border-fpl-green outline-none ring-0"
+                    className="w-full bg-brand-dark border-2 border-white/10 focus:border-brand-accent rounded-lg text-brand-text p-2.5 transition-colors outline-none focus:ring-2 focus:ring-brand-accent/50"
                     aria-label="Select a team to view their transfer history"
                 >
                     <option value="all">All Teams (by Gameweek)</option>

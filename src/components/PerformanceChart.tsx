@@ -1,6 +1,4 @@
 
-
-
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { Team } from '../types';
@@ -10,7 +8,7 @@ interface PerformanceChartProps {
   teams: Team[];
 }
 
-const CHART_COLORS = ['#00ff87', '#e90052', '#04f5ff', '#faff00', '#ffa500'];
+const CHART_COLORS = ['#3b82f6', '#4ade80', '#f43f5e', '#facc15', '#06b6d4', '#a855f7'];
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
   const chartData = useMemo(() => {
@@ -30,10 +28,11 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
     });
   }, [teams]);
 
+
   return (
     <>
-      <div className="bg-fpl-purple/60 p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
-        <h2 className="text-2xl font-bold mb-6 text-fpl-text text-center">League Performance Overview</h2>
+      <div className="bg-brand-surface p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
+        <h2 className="text-2xl font-bold mb-6 text-brand-text text-center">League Performance Overview</h2>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={chartData}
@@ -44,18 +43,19 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
               bottom: 5,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-            <XAxis dataKey="name" stroke="#f1f5f9" tick={{ fill: '#f1f5f9' }} />
-            <YAxis stroke="#f1f5f9" tick={{ fill: '#f1f5f9' }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+            <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+            <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
             <Tooltip
                 contentStyle={{ 
-                    backgroundColor: 'rgba(55, 0, 60, 0.8)',
-                    borderColor: '#00ff87',
-                    color: '#f1f5f9'
+                    backgroundColor: 'rgba(10, 15, 31, 0.8)',
+                    borderColor: '#3b82f6',
+                    color: '#e2e8f0',
+                    backdropFilter: 'blur(4px)',
                 }}
-                labelStyle={{ color: '#00ff87', fontWeight: 'bold' }}
+                labelStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
             />
-            <Legend wrapperStyle={{ color: '#f1f5f9' }} />
+            <Legend wrapperStyle={{ color: '#e2e8f0' }} />
             {teams.map((team, index) => (
               <Line
                 key={team.id}
@@ -63,7 +63,8 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
                 dataKey={team.teamName}
                 stroke={CHART_COLORS[index % CHART_COLORS.length]}
                 strokeWidth={3}
-                activeDot={{ r: 8 }}
+                dot={{ r: 0 }}
+                activeDot={{ r: 8, strokeWidth: 2, fill: CHART_COLORS[index % CHART_COLORS.length] }}
               />
             ))}
           </LineChart>

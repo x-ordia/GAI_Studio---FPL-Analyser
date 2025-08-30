@@ -43,15 +43,15 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
     const playerHistoryCache = new Map<number, FplPlayerGameweekHistory[]>();
     const getPlayerGameweekPoints = async (playerId: number, gameweek: number): Promise<number> => {
         let history = playerHistoryCache.get(playerId);
-        if (history === undefined) { // Check for undefined to handle cached failures (empty array)
+        if (history === undefined) {
             try {
                 const summary = await fetchData<FplElementSummary>(`${FPL_API_BASE}element-summary/${playerId}/`);
                 history = summary.history;
-                playerHistoryCache.set(playerId, history);
+                playerHistoryCache.set(playerId, history); // Only cache on success
             } catch (e) {
                 console.error(`Failed to fetch history for player ${playerId}`, e);
-                history = []; // Set empty array on failure to prevent re-fetching
-                playerHistoryCache.set(playerId, history); 
+                // Don't cache failure. Return 0 for this attempt, allowing a re-fetch next time.
+                return 0;
             }
         }
         
@@ -108,6 +108,7 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
                     team: playerTeam?.name || 'Unknown',
                     livePoints: points,
                     isCaptain: p.is_captain,
+                    isViceCaptain: p.is_vice_captain,
                     multiplier: p.multiplier,
                 };
             }).filter((p): p is LivePlayer => p !== null);

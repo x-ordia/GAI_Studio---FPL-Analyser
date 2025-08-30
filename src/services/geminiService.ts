@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckAnalysis } from '../types';
+import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckAnalysis, FplFixture, FplTeamInfo, PvpAnalysisResult } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -202,7 +202,7 @@ export const analyzeLeagueLuck = async (teams: Team[]): Promise<LuckAnalysis[]> 
     const teamSummaries = teams.map(team => {
         const benchPoints = team.liveBenchPoints ?? 0;
         
-        const highestScorer = team.players.reduce((max, p) => (p.livePoints > max.livePoints ? p : max), { livePoints: -Infinity, name: 'N/A' });
+        const highestScorer = team.players.reduce((max, p) => (p.livePoints > max.livePoints ? p : max), { livePoints: -Infinity, name: 'N/A', isCaptain: false, id:0, position: 'GKP', team: '', multiplier: 0, isViceCaptain: false });
         
         const captain = team.players.find(p => p.isCaptain);
         const captainPoints = captain ? captain.livePoints * (captain.multiplier > 1 ? captain.multiplier : 2) : 0;
@@ -273,4 +273,86 @@ Team: ${team.teamName} (${team.managerName})
         console.error("Gemini API call for luck analysis failed:", error);
         throw new Error("The AI luck analysis failed.");
     }
+};
+
+export const analyzePvpMatchup = async (team1: Team, team2: Team, fixtures: FplFixture[], fplTeams: FplTeamInfo[]): Promise<PvpAnalysisResult> => {
+    const getTeamInfo = (teamId: number) => fplTeams.find(t => t.id === teamId)?.name || 'Unknown Team';
+
+    const fixturesList = fixtures.map(f => `${getTeamInfo(f.team_h)} vs ${getTeamInfo(f.team_a)}`).join('\n- ');
+
+    const formatTeamForPrompt = (team: Team) => {
+        const starters = team.players.filter(p => p.livePoints !== undefined).slice(0, 11);
+        const captain = team.players.find(p => p.isCaptain);
+        const viceCaptain = team.players.find(p => p.isViceCaptain);
+
+        return `
+Team Name: ${team.teamName} (${team.managerName})
+Starting XI:
+${starters.map(p => `- ${p.name} (${p.position}, ${p.team})`).join('\n')}
+Captain: ${captain?.name || 'N/A'}
+Vice-Captain: ${viceCaptain?.name || 'N/A'}
+    `.trim();
+    };
+
+    const prompt = `
+You are a world-class Fantasy Premier League (FPL) analyst with deep tactical knowledge and statistical insight. Your task is to predict the outcome of a head-to-head matchup for the upcoming gameweek.
+
+**Upcoming Gameweek Fixtures:**
+- ${fixturesList}
+
+**Matchup Details:**
+
+**Team 1: ${formatTeamForPrompt(team1)}**
+
+**Team 2: ${formatTeamForPrompt(team2)}**
+
+**Your Analysis Task:**
+1.  **Player-by-Player Fixture Analysis:** For each of the 22 starting players, meticulously assess their upcoming fixture. Consider their individual form, their team's form (both attacking and defensive), their past season performance, and historical performance against their opponent.
+2.  **Captaincy Impact:** Give significant weight to the captain choices. A captain with a favorable fixture has a massive impact on the outcome. Evaluate the captaincy decisions for both teams and predict their captaincy returns.
+3.  **Predict Scores:** Based on your deep analysis, predict a final points score for each team for this gameweek. Be precise and realistic.
+4.  **Declare a Winner:** Based on the predicted scores, state who the winner will be.
+5.  **Provide Justification:** Write a detailed, insightful justification for your prediction. Explain the key factors that influenced your decision. This must include:
+    *   A direct comparison of the captaincy choices and their likely impact.
+    *   An analysis of which team has the more favorable set of fixtures overall.
+    *   Highlighting 1-2 key "differential" players from each team who are likely to make a big impact (either positively or negatively).
+    *   A concluding summary sentence declaring the most likely winner and why.
+
+**Output Format:**
+Return your response ONLY in the specified JSON format.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            predictedWinner: { type: Type.STRING, description: "The name of the team predicted to win." },
+            team1Name: { type: Type.STRING, description: `The name of the first team: ${team1.teamName}` },
+            team2Name: { type: Type.STRING, description: `The name of the second team: ${team2.teamName}` },
+            team1PredictedScore: { type: Type.NUMBER, description: "The predicted score for team 1." },
+            team2PredictedScore: { type: Type.NUMBER, description: "The predicted score for team 2." },
+            justification: { type: Type.STRING, description: "A detailed justification for the prediction." }
+          },
+          required: ["predictedWinner", "team1Name", "team2Name", "team1PredictedScore", "team2PredictedScore", "justification"]
+        },
+        temperature: 0.4,
+      },
+    });
+
+    const jsonString = response.text.trim();
+    const result = JSON.parse(jsonString);
+
+    if (result.predictedWinner && result.team1Name) {
+        return result as PvpAnalysisResult;
+    } else {
+        throw new Error("Invalid JSON structure received from API for PvP analysis.");
+    }
+  } catch (error) {
+    console.error("Gemini API call for PvP analysis failed:", error);
+    throw new Error("The AI head-to-head analysis failed.");
+  }
 };

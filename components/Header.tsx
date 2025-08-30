@@ -12,25 +12,25 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeague }) => {
-  const buttonBaseClasses = "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105";
-  const activeClasses = "bg-fpl-green text-fpl-purple shadow-lg";
-  const inactiveClasses = "bg-fpl-purple text-fpl-text hover:bg-opacity-80";
+  const buttonBaseClasses = "flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all duration-300";
+  const activeClasses = "bg-brand-accent text-white shadow-lg shadow-brand-accent/20";
+  const inactiveClasses = "bg-transparent text-brand-text-muted hover:bg-brand-surface hover:text-brand-text";
 
   return (
-    <header className="bg-fpl-purple/50 backdrop-blur-sm sticky top-0 z-10 shadow-md">
+    <header className="bg-brand-surface/50 backdrop-blur-lg sticky top-0 z-50 border-b border-white/10 shadow-md">
       <div className="container mx-auto flex justify-between items-center p-4">
-        <h1 className="text-xl md:text-2xl font-bold text-fpl-text tracking-wider">
-          FPL<span className="text-fpl-green">.AI</span> Ranker
+        <h1 className="text-xl md:text-2xl font-bold text-brand-text tracking-wider">
+          FPL<span className="text-brand-accent">.AI</span> Ranker
         </h1>
         <div className="flex items-center space-x-2 md:space-x-4">
-          <nav className="flex space-x-2 md:space-x-4 border-r border-white/20 pr-2 md:pr-4">
+          <nav className="hidden sm:flex items-center bg-black/20 p-1 rounded-xl border border-white/10 space-x-1">
             <button
               onClick={() => setActiveView(View.Dashboard)}
               className={`${buttonBaseClasses} ${activeView === View.Dashboard ? activeClasses : inactiveClasses}`}
               aria-label="Show dashboard"
             >
               <HomeIcon className="w-5 h-5" />
-              <span className="hidden sm:inline">Dashboard</span>
+              <span>Dashboard</span>
             </button>
             <button
               onClick={() => setActiveView(View.Chart)}
@@ -38,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeag
               aria-label="Show performance chart"
             >
               <ChartBarIcon className="w-5 h-5" />
-              <span className="hidden sm:inline">Performance</span>
+              <span>Performance</span>
             </button>
             <button
               onClick={() => setActiveView(View.Rankings)}
@@ -46,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeag
               aria-label="Show AI rankings"
             >
               <RobotIcon className="w-5 h-5" />
-              <span className="hidden sm:inline">AI Rankings</span>
+              <span>AI Rankings</span>
             </button>
             <button
               onClick={() => setActiveView(View.PvP)}
@@ -54,12 +54,12 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeag
               aria-label="Show PvP analysis"
             >
               <UsersGroupIcon className="w-5 h-5" />
-              <span className="hidden sm:inline">PvP</span>
+              <span>PvP</span>
             </button>
           </nav>
           <button 
             onClick={onChangeLeague} 
-            className="text-sm font-semibold text-fpl-text hover:text-fpl-green transition-colors"
+            className="text-sm font-semibold text-brand-text-muted hover:text-brand-accent transition-colors"
             aria-label="Change league"
           >
             Change League

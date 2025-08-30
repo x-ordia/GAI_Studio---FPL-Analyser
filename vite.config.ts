@@ -9,6 +9,6 @@ export default defineConfig({
   define: {
     // WARNING: Storing API keys in source code is a security risk.
     // It is recommended to use environment variables for production deployments.
-    'process.env.API_KEY': JSON.stringify('AIzaSyBcjKt2Z40SgpUXS9qcycvy7tuBZBxEp3s')
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
   }
 })

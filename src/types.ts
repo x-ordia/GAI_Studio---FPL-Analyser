@@ -9,6 +9,7 @@ export interface Player {
 export interface LivePlayer extends Player {
     livePoints: number;
     isCaptain: boolean;
+    isViceCaptain: boolean;
     multiplier: number;
 }
 
@@ -48,6 +49,7 @@ export enum View {
   Dashboard = 'dashboard',
   Chart = 'chart',
   Rankings = 'rankings',
+  PvP = 'pvp',
 }
 
 export interface KeyMatch {
@@ -71,6 +73,15 @@ export interface PlayerOwnership {
 export interface LuckAnalysis {
   teamName: string;
   luckScore: number;
+  justification: string;
+}
+
+export interface PvpAnalysisResult {
+  predictedWinner: string;
+  team1Name: string;
+  team2Name: string;
+  team1PredictedScore: number;
+  team2PredictedScore: number;
   justification: string;
 }
 

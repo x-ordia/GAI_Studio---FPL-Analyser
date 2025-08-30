@@ -1,7 +1,7 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
-import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis, PvpAnalysisResult } from './types';
+import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck, analyzePvpMatchup } from './services/geminiService';
 import { fetchLeagueDetails, fetchFixtures } from './services/fplService';
 import Header from './components/Header';
 import PerformanceChart from './components/PerformanceChart';
@@ -9,6 +9,165 @@ import TeamRankings from './components/TeamRankings';
 import Loader from './components/Loader';
 import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
+import { SparklesIcon } from './components/icons/SparklesIcon';
+
+// Inlined PvpAnalysis component to avoid adding new files
+const PvpAnalysis: React.FC<{
+    teams: Team[];
+    fixtures: FplFixture[];
+    fplTeams: FplTeamInfo[];
+}> = ({ teams, fixtures, fplTeams }) => {
+    const [team1Id, setTeam1Id] = useState<string>('');
+    const [team2Id, setTeam2Id] = useState<string>('');
+    const [result, setResult] = useState<PvpAnalysisResult | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const sortedTeams = useMemo(() => [...teams].sort((a, b) => a.teamName.localeCompare(b.teamName)), [teams]);
+
+    const handleAnalyze = async () => {
+        if (!team1Id || !team2Id) return;
+
+        const team1 = teams.find(t => t.id === parseInt(team1Id, 10));
+        const team2 = teams.find(t => t.id === parseInt(team2Id, 10));
+
+        if (!team1 || !team2) return;
+
+        setIsLoading(true);
+        setError(null);
+        setResult(null);
+
+        try {
+            if (!process.env.API_KEY) {
+                throw new Error("API key is not configured.");
+            }
+            const analysisResult = await analyzePvpMatchup(team1, team2, fixtures, fplTeams);
+            setResult(analysisResult);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+            setError(`Failed to analyze matchup: ${errorMessage}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const renderResult = () => {
+        if (isLoading) {
+            return (
+                <div className="text-center py-12">
+                    <div className="flex justify-center"><Loader /></div>
+                    <p className="text-brand-text-muted mt-3">The AI is analyzing the matchup, considering fixtures, form, and captaincy choices...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                 <div className="bg-brand-danger/10 border border-brand-danger text-brand-text px-4 py-3 rounded-lg text-center mt-6">
+                    <p>{error}</p>
+                </div>
+            );
+        }
+        
+        if (!result) {
+            return (
+                <div className="text-center py-12">
+                    <p className="text-brand-text-muted text-lg">Select two teams to get an AI-powered prediction for their next match.</p>
+                </div>
+            );
+        }
+
+        const isTeam1Winner = result.predictedWinner === result.team1Name;
+        const isTeam2Winner = result.predictedWinner === result.team2Name;
+
+        return (
+            <div className="mt-8 animate-fadeIn space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] items-center gap-4 text-center">
+                    {/* Team 1 Card */}
+                    <div className={`bg-black/20 p-6 rounded-xl border-2 transition-all duration-300 ${isTeam1Winner ? 'border-brand-success shadow-lg shadow-brand-success/20' : 'border-transparent'}`}>
+                        <h3 className="text-xl font-bold text-brand-text truncate" title={result.team1Name}>{result.team1Name}</h3>
+                        <p className="text-5xl font-bold text-brand-text my-2">{result.team1PredictedScore}</p>
+                        <p className="text-brand-text-muted">Predicted Points</p>
+                    </div>
+
+                    <p className="text-4xl font-bold text-brand-danger">VS</p>
+                    
+                    {/* Team 2 Card */}
+                     <div className={`bg-black/20 p-6 rounded-xl border-2 transition-all duration-300 ${isTeam2Winner ? 'border-brand-success shadow-lg shadow-brand-success/20' : 'border-transparent'}`}>
+                        <h3 className="text-xl font-bold text-brand-text truncate" title={result.team2Name}>{result.team2Name}</h3>
+                        <p className="text-5xl font-bold text-brand-text my-2">{result.team2PredictedScore}</p>
+                        <p className="text-brand-text-muted">Predicted Points</p>
+                    </div>
+                </div>
+
+                {/* Justification Card */}
+                <div className="bg-black/20 p-6 rounded-xl border-l-4 border-brand-accent">
+                    <h4 className="text-lg font-bold text-brand-text mb-2 flex items-center gap-2">
+                        <SparklesIcon className="w-5 h-5 text-brand-accent" />
+                        AI Justification
+                    </h4>
+                    <p className="text-brand-text-muted italic whitespace-pre-wrap">"{result.justification}"</p>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="bg-brand-surface p-4 sm:p-6 rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
+            <h2 className="text-3xl font-bold mb-6 text-brand-text text-center">Head-to-Head AI Analysis</h2>
+            
+            <div className="bg-black/30 p-4 rounded-lg border border-white/10">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr,1fr,auto] gap-4 items-end">
+                    <div>
+                        <label htmlFor="team1-select" className="block text-sm font-medium text-brand-text-muted mb-1">
+                            Team 1
+                        </label>
+                        <select
+                            id="team1-select"
+                            value={team1Id}
+                            onChange={(e) => setTeam1Id(e.target.value)}
+                            className="w-full bg-brand-dark border-2 border-white/10 focus:border-brand-accent rounded-lg text-brand-text p-2.5 transition-colors outline-none focus:ring-2 focus:ring-brand-accent/50"
+                        >
+                            <option value="" disabled>Select a team</option>
+                            {sortedTeams.map(team => (
+                                <option key={team.id} value={team.id} disabled={team.id.toString() === team2Id}>
+                                    {team.teamName}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                     <div>
+                        <label htmlFor="team2-select" className="block text-sm font-medium text-brand-text-muted mb-1">
+                            Team 2
+                        </label>
+                        <select
+                            id="team2-select"
+                            value={team2Id}
+                            onChange={(e) => setTeam2Id(e.target.value)}
+                            className="w-full bg-brand-dark border-2 border-white/10 focus:border-brand-accent rounded-lg text-brand-text p-2.5 transition-colors outline-none focus:ring-2 focus:ring-brand-accent/50"
+                        >
+                            <option value="" disabled>Select a team</option>
+                            {sortedTeams.map(team => (
+                                <option key={team.id} value={team.id} disabled={team.id.toString() === team1Id}>
+                                    {team.teamName}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        onClick={handleAnalyze}
+                        disabled={!team1Id || !team2Id || team1Id === team2Id || isLoading}
+                        className="w-full md:w-auto px-5 py-2.5 bg-brand-danger text-white font-bold rounded-lg hover:bg-opacity-80 transition-all transform hover:scale-105 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2 shadow-lg shadow-brand-danger/20"
+                    >
+                        <SparklesIcon className="w-5 h-5"/>
+                        <span>{isLoading ? 'Analyzing...' : 'Analyze'}</span>
+                    </button>
+                </div>
+            </div>
+            {renderResult()}
+        </div>
+    );
+};
 
 const App: React.FC = () => {
   const [leagueId, setLeagueId] = useState<number | null>(null);
@@ -123,7 +282,7 @@ const App: React.FC = () => {
     }
   }, [teams]);
 
-   const handleAnalyzeLuck = useCallback(async () => {
+  const handleAnalyzeLuck = useCallback(async () => {
     if (teams.length === 0 || !teams[0].players) return;
 
     setError(null);
@@ -167,25 +326,23 @@ const App: React.FC = () => {
 
   if (isFetchingLeague) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-fpl-purple to-fpl-purple-light text-fpl-text flex flex-col justify-center items-center">
-        <div className="transform scale-150">
-          <Loader />
-        </div>
+      <div className="min-h-screen text-brand-text flex flex-col justify-center items-center">
+        <Loader />
         <p className="text-xl mt-6 font-semibold tracking-wide">Fetching FPL League Data for ID: {leagueId}...</p>
-        <p className="text-fpl-text-dark mt-1">Please hold on, this may take a moment.</p>
+        <p className="text-brand-text-muted mt-1">Please hold on, this may take a moment.</p>
       </div>
     );
   }
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-fpl-purple to-fpl-purple-light text-fpl-text flex justify-center items-center p-4">
-        <div className="bg-red-500/20 border border-red-500 text-red-300 px-6 py-4 rounded-lg text-center max-w-lg shadow-2xl">
+      <div className="min-h-screen text-brand-text flex justify-center items-center p-4">
+        <div className="bg-brand-danger/10 border border-brand-danger text-brand-text px-6 py-4 rounded-lg text-center max-w-lg shadow-2xl">
           <h2 className="text-2xl font-bold mb-2">Failed to Load League Data</h2>
-          <p>{fetchError}</p>
+          <p className="text-brand-danger/90">{fetchError}</p>
            <button 
                 onClick={handleChangeLeague}
-                className="mt-4 px-4 py-2 bg-fpl-green text-fpl-purple font-bold rounded-lg hover:bg-opacity-80 transition-colors"
+                className="mt-6 px-5 py-2.5 bg-brand-accent text-white font-bold rounded-lg hover:bg-brand-accent-hover transition-colors shadow-lg shadow-brand-accent/20"
             >
                 Try a Different League
             </button>
@@ -197,11 +354,11 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (teams.length === 0) {
         return (
-            <div className="text-center py-10 bg-fpl-purple/60 rounded-xl">
-                <p className="text-xl text-fpl-text-dark">No teams found in this league.</p>
+            <div className="text-center py-10 bg-brand-surface rounded-xl border border-white/10">
+                <p className="text-xl text-brand-text-muted">No teams found in this league.</p>
                 <button 
                   onClick={handleChangeLeague}
-                  className="mt-4 px-4 py-2 bg-fpl-green text-fpl-purple font-bold rounded-lg hover:bg-opacity-80 transition-colors"
+                  className="mt-4 px-5 py-2.5 bg-brand-accent text-white font-bold rounded-lg hover:bg-brand-accent-hover transition-colors shadow-lg shadow-brand-accent/20"
               >
                   Try a Different League
               </button>
@@ -233,25 +390,29 @@ const App: React.FC = () => {
                         loadingStates={loadingStates}
                         onAnalyze={handleAnalyzeTeam}
                     />;
+        case View.PvP:
+            return <PvpAnalysis teams={teams} fixtures={fixtures} fplTeams={fplTeams} />;
         default:
             return null;
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-fpl-purple to-fpl-purple-light text-fpl-text font-sans">
+    <div className="min-h-screen text-brand-text font-sans">
       <Header activeView={activeView} setActiveView={setActiveView} onChangeLeague={handleChangeLeague} />
       <main className="container mx-auto p-4 md:p-8">
         {error && (
-            <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <div className="bg-brand-danger/10 border border-brand-danger text-brand-text px-4 py-3 rounded-lg relative mb-6" role="alert">
                 <strong className="font-bold">Error: </strong>
                 <span className="block sm:inline">{error}</span>
                 <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3">
-                    <svg className="fill-current h-6 w-6 text-red-400" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                    <svg className="fill-current h-6 w-6 text-brand-danger/80" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
                 </button>
             </div>
         )}
-        {renderContent()}
+        <div key={activeView} className="animate-fadeIn">
+            {renderContent()}
+        </div>
       </main>
     </div>
   );
