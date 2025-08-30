@@ -6,7 +6,7 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1HKG75Ilq_OR4a5D8Vk33n1TBlKb9wGIw
+View the app - https://gai-studio-fpl-analyser.vercel.app/
 
 ## Run Locally
 
