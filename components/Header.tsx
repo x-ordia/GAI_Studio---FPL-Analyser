@@ -7,7 +7,7 @@ import { UsersGroupIcon } from './icons/UsersGroupIcon';
 
 interface HeaderProps {
   activeView: View;
-  onNavigate: (e: React.MouseEvent, view: View) => void;
+  onNavigate: (view: View) => void;
   onChangeLeague: () => void;
 }
 
@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, onNavigate, onChangeLeague 
               {navItems.map(({ view, label, icon: Icon }) => (
                 <button
                   key={view}
-                  onClick={(e) => onNavigate(e, view)}
+                  onClick={() => onNavigate(view)}
                   className={`${desktopButtonBaseClasses} ${activeView === view ? desktopActiveClasses : desktopInactiveClasses}`}
                   aria-label={`Show ${label}`}
                 >
@@ -69,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, onNavigate, onChangeLeague 
           {navItems.map(({ view, label, mobileLabel, icon: Icon }) => (
             <button
               key={view}
-              onClick={(e) => onNavigate(e, view)}
+              onClick={() => onNavigate(view)}
               className={`${mobileButtonBaseClasses} ${activeView === view ? mobileActiveClasses : mobileInactiveClasses}`}
               aria-label={`Show ${label}`}
             >

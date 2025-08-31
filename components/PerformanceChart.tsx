@@ -7,7 +7,7 @@ interface PerformanceChartProps {
   teams: Team[];
 }
 
-const CHART_COLORS = ['#00ADB5', '#EEEEEE', '#fca311', '#e63946', '#20c997', '#be95c4'];
+const CHART_COLORS = ['#00ADB5', '#EEEEEE', '#fca311', '#e63946', '#20c997', '#be95c4', '#3a86ff', '#ff006e', '#fb5607', '#8338ec', '#06d6a0', '#ffd166'];
 
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {

@@ -245,8 +245,8 @@ const App: React.FC = () => {
     setBootstrapData(null);
   };
 
-  const handleNavigate = (e: React.MouseEvent, view: View) => {
-    setShockwave({ x: e.clientX, y: e.clientY, key: Date.now() });
+  const handleNavigate = (view: View) => {
+    setShockwave({ x: window.innerWidth / 2, y: window.innerHeight / 2, key: Date.now() });
     
     if (view === View.Chart && !areTeamsFullyLoaded && !isFetchingDetails) {
         loadFullTeamData();
@@ -378,7 +378,7 @@ const App: React.FC = () => {
     <div 
       className="responsive-bg min-h-screen bg-cover bg-fixed bg-center"
     >
-      <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/60 backdrop-blur-[2px] overflow-hidden relative">
+      <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/60 backdrop-blur-[2px] relative">
         {shockwave && (
           <Shockwave
             key={shockwave.key}

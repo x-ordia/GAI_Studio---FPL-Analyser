@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 // Constants
-const HEXAGON_SIZE = 60;
+const HEXAGON_SIZE = 40;
 const ANIMATION_DURATION = 0.7;
 const STAGGER_DELAY = 0.04;
 
