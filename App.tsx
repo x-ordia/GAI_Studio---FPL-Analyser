@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
 import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
@@ -12,6 +9,7 @@ import Loader from './components/Loader';
 import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
 import PvpAnalysis from './components/PvpAnalysis';
+import HexagonLoader from './components/HexagonLoader';
 // FIX: Import Transition type from framer-motion to resolve type error.
 import { motion, AnimatePresence, Transition } from 'framer-motion';
 
@@ -200,7 +198,7 @@ const App: React.FC = () => {
   };
 
   const renderView = () => {
-    if (teams.length === 0) {
+    if (teams.length === 0 && !isFetchingLeague && !fetchError) {
         return (
             <div className="text-center py-10 bg-brand-surface rounded-xl border border-white/10">
                 <p className="text-xl text-brand-text-muted">No teams found in this league.</p>
@@ -253,10 +251,13 @@ const App: React.FC = () => {
   
     if (isFetchingLeague) {
       return (
-        <div className="h-full flex flex-col justify-center items-center">
-          <Loader />
-          <p className="text-xl mt-6 font-semibold tracking-wide">Fetching FPL League Data for ID: {leagueId}...</p>
-          <p className="text-brand-text-muted mt-1">Please hold on, this may take a moment.</p>
+        <div className="h-full flex flex-col justify-center items-center text-center p-4 relative z-20">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-wider text-white" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+            Accessing FPL Servers...
+          </h2>
+          <p className="text-xl mt-2 text-brand-text-muted font-medium" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+            Analyzing League ID: {leagueId}
+          </p>
         </div>
       );
     }
@@ -311,7 +312,10 @@ const App: React.FC = () => {
     <div 
       className="responsive-bg min-h-screen bg-cover bg-fixed bg-center"
     >
-      <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/80 backdrop-blur-[2px] overflow-hidden">
+      <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/60 backdrop-blur-[2px] overflow-hidden relative">
+        <AnimatePresence>
+          {isFetchingLeague && <HexagonLoader />}
+        </AnimatePresence>
         {showHeader &&
             <Header activeView={activeView} setActiveView={setActiveView} onChangeLeague={handleChangeLeague} />
         }

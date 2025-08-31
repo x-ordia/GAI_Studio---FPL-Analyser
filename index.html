@@ -37,6 +37,10 @@
                 '0%': { backgroundPosition: '0% 50%' },
                 '50%': { backgroundPosition: '100% 50%' },
                 '100%': { backgroundPosition: '0% 50%' },
+              },
+              'spinner-rotate': {
+                'from': { transform: 'rotate(0deg)' },
+                'to': { transform: 'rotate(360deg)' },
               }
             },
             animation: {
@@ -67,6 +71,45 @@
         .responsive-bg {
           background-image: url('https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?auto=format&fit=crop&w=1920&q=80');
         }
+      }
+      
+      /* Simple spinner for inline loaders */
+      .simple-spinner {
+        width: 1.5rem; /* 24px */
+        height: 1.5rem;
+        border: 3px solid rgba(59, 130, 246, 0.3);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spinner-rotate 0.8s linear infinite;
+      }
+
+      /* Hexagon Loader Styles */
+      .hexagon-grid-container {
+          position: absolute;
+          inset: 0;
+          z-index: 10;
+          overflow: hidden;
+          background-color: rgba(10, 15, 31, 0.01);
+      }
+
+      .hexagon-grid {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          display: flex;
+          flex-direction: column;
+      }
+
+      .hexagon-row {
+          display: flex;
+          margin-bottom: -21.3px;
+      }
+
+      .hexagon {
+          flex-shrink: 0;
+          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+          background-color: #0a0f1f;
       }
     </style>
 <script type="importmap">
