@@ -118,10 +118,10 @@ const ChipBadge: React.FC<{ chip: string | null | undefined }> = ({ chip }) => {
     if (!chip || chip === 'null') return null;
 
     const chipDetails: { [key: string]: { label: string; tooltip: string; className: string } } = {
-        'bboost': { label: 'BB', tooltip: 'Bench Boost', className: 'bg-blue-500/80' },
-        '3xc': { label: 'TC', tooltip: 'Triple Captain', className: 'bg-purple-500/80' },
-        'freehit': { label: 'FH', tooltip: 'Free Hit', className: 'bg-green-500/80' },
-        'wildcard': { label: 'WC', tooltip: 'Wildcard', className: 'bg-yellow-500/80 text-brand-dark' },
+        'bboost': { label: 'BB', tooltip: 'Bench Boost', className: 'bg-brand-accent/80' },
+        '3xc': { label: 'TC', tooltip: 'Triple Captain', className: 'bg-brand-danger/80' },
+        'freehit': { label: 'FH', tooltip: 'Free Hit', className: 'bg-brand-success/80' },
+        'wildcard': { label: 'WC', tooltip: 'Wildcard', className: 'bg-brand-warning/80 text-brand-dark' },
     };
 
     const detail = chipDetails[chip];

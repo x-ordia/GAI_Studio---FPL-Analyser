@@ -7,7 +7,7 @@ import { UsersGroupIcon } from './icons/UsersGroupIcon';
 
 interface HeaderProps {
   activeView: View;
-  setActiveView: (view: View) => void;
+  onNavigate: (e: React.MouseEvent, view: View) => void;
   onChangeLeague: () => void;
 }
 
@@ -18,7 +18,7 @@ const navItems = [
   { view: View.PvP, label: 'PvP', mobileLabel: 'PvP', icon: UsersGroupIcon },
 ];
 
-const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeague }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, onNavigate, onChangeLeague }) => {
   // Desktop Button Styles
   const desktopButtonBaseClasses = "flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all duration-300";
   const desktopActiveClasses = "bg-brand-accent text-white shadow-lg shadow-brand-accent/20";
@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeag
               {navItems.map(({ view, label, icon: Icon }) => (
                 <button
                   key={view}
-                  onClick={() => setActiveView(view)}
+                  onClick={(e) => onNavigate(e, view)}
                   className={`${desktopButtonBaseClasses} ${activeView === view ? desktopActiveClasses : desktopInactiveClasses}`}
                   aria-label={`Show ${label}`}
                 >
@@ -69,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onChangeLeag
           {navItems.map(({ view, label, mobileLabel, icon: Icon }) => (
             <button
               key={view}
-              onClick={() => setActiveView(view)}
+              onClick={(e) => onNavigate(e, view)}
               className={`${mobileButtonBaseClasses} ${activeView === view ? mobileActiveClasses : mobileInactiveClasses}`}
               aria-label={`Show ${label}`}
             >

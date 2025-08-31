@@ -11,15 +11,15 @@
         theme: {
           extend: {
             colors: {
-              'brand-dark': '#0a0f1f',
-              'brand-surface': 'rgba(23, 29, 49, 0.6)',
-              'brand-accent': '#3b82f6',
-              'brand-accent-hover': '#60a5fa',
-              'brand-text': '#e2e8f0',
-              'brand-text-muted': '#94a3b8',
-              'brand-success': '#4ade80',
-              'brand-danger': '#f43f5e',
-              'brand-warning': '#facc15',
+              'brand-dark': '#16181d',
+              'brand-surface': '#222831',
+              'brand-accent': '#00ADB5',
+              'brand-accent-hover': '#00cdd7',
+              'brand-text': '#EEEEEE',
+              'brand-text-muted': '#a9a9a9',
+              'brand-success': '#20c997',
+              'brand-danger': '#e63946',
+              'brand-warning': '#fca311',
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
@@ -57,7 +57,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body {
-        background: linear-gradient(135deg, #0a0f1f, #101a3d, #0a0f1f);
+        background: linear-gradient(135deg, #16181d, #222831, #16181d);
         background-size: 200% 200%;
         animation: backgroundPan 15s ease infinite;
       }
@@ -77,8 +77,8 @@
       .simple-spinner {
         width: 1.5rem; /* 24px */
         height: 1.5rem;
-        border: 3px solid rgba(59, 130, 246, 0.3);
-        border-top-color: #3b82f6;
+        border: 3px solid rgba(0, 173, 181, 0.3);
+        border-top-color: #00ADB5;
         border-radius: 50%;
         animation: spinner-rotate 0.8s linear infinite;
       }
@@ -89,7 +89,7 @@
           inset: 0;
           z-index: 10;
           overflow: hidden;
-          background-color: rgba(10, 15, 31, 0.01);
+          background-color: rgba(34, 40, 49, 0.01);
       }
 
       .hexagon-grid {
@@ -109,7 +109,7 @@
       .hexagon {
           flex-shrink: 0;
           clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-          background-color: #0a0f1f;
+          background-color: #16181d;
       }
     </style>
 <script type="importmap">

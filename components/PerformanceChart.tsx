@@ -7,7 +7,8 @@ interface PerformanceChartProps {
   teams: Team[];
 }
 
-const CHART_COLORS = ['#3b82f6', '#4ade80', '#f43f5e', '#facc15', '#06b6d4', '#a855f7'];
+const CHART_COLORS = ['#00ADB5', '#EEEEEE', '#fca311', '#e63946', '#20c997', '#be95c4'];
+
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
   const [hoveredTeam, setHoveredTeam] = useState<string | null>(null);
@@ -72,19 +73,19 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ teams }) => {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-            <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-            <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+            <XAxis dataKey="name" stroke="#a9a9a9" tick={{ fill: '#a9a9a9' }} />
+            <YAxis stroke="#a9a9a9" tick={{ fill: '#a9a9a9' }} />
             <Tooltip
                 contentStyle={{ 
-                    backgroundColor: 'rgba(10, 15, 31, 0.8)',
-                    borderColor: '#3b82f6',
-                    color: '#e2e8f0',
+                    backgroundColor: 'rgba(34, 40, 49, 0.8)',
+                    borderColor: '#00ADB5',
+                    color: '#EEEEEE',
                     backdropFilter: 'blur(4px)',
                 }}
-                labelStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
+                labelStyle={{ color: '#00ADB5', fontWeight: 'bold' }}
             />
             <Legend 
-              wrapperStyle={{ color: '#e2e8f0', cursor: 'pointer' }}
+              wrapperStyle={{ color: '#EEEEEE', cursor: 'pointer' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             />

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis } from './types';
+import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis, FplBootstrap } from './types';
 import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
-import { fetchLeagueDetails, fetchFixtures } from './services/fplService';
+import { fetchLeagueDetails, fetchFixtures, fetchMissingTeamData } from './services/fplService';
 import Header from './components/Header';
 import PerformanceChart from './components/PerformanceChart';
 import TeamRankings from './components/TeamRankings';
@@ -10,28 +10,19 @@ import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
 import PvpAnalysis from './components/PvpAnalysis';
 import HexagonLoader from './components/HexagonLoader';
-// FIX: Import Transition type from framer-motion to resolve type error.
+import Shockwave from './components/Shockwave';
 import { motion, AnimatePresence, Transition } from 'framer-motion';
 
 const pageVariants = {
-  initial: {
-    opacity: 0,
-    x: "-100vw",
-  },
-  in: {
-    opacity: 1,
-    x: 0,
-  },
-  out: {
-    opacity: 0,
-    x: "100vw",
-  }
+  initial: { opacity: 0 },
+  in: { opacity: 1 },
+  out: { opacity: 0 },
 };
 
 const pageTransition: Transition = {
   type: "tween",
-  ease: "anticipate",
-  duration: 0.5
+  ease: "easeInOut",
+  duration: 0.3
 };
 
 const App: React.FC = () => {
@@ -45,6 +36,11 @@ const App: React.FC = () => {
   const [isFetchingLeague, setIsFetchingLeague] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // State for deferred data loading
+  const [bootstrapData, setBootstrapData] = useState<FplBootstrap | null>(null);
+  const [areTeamsFullyLoaded, setAreTeamsFullyLoaded] = useState<boolean>(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState<boolean>(false);
+
   // Dashboard data
   const [fixtures, setFixtures] = useState<FplFixture[]>([]);
   const [fplTeams, setFplTeams] = useState<FplTeamInfo[]>([]);
@@ -55,10 +51,15 @@ const App: React.FC = () => {
   const [luckAnalysis, setLuckAnalysis] = useState<LuckAnalysis[] | null>(null);
   const [isLoadingLuck, setIsLoadingLuck] = useState<boolean>(false);
 
+  const [shockwave, setShockwave] = useState<{ x: number, y: number, key: number } | null>(null);
+
   useEffect(() => {
     if (!leagueId) return;
 
     const loadLeagueData = async () => {
+      const startTime = Date.now();
+      let hadError = false;
+
       try {
         setFetchError(null);
         setIsFetchingLeague(true);
@@ -71,6 +72,7 @@ const App: React.FC = () => {
         const { teams: leagueTeams, bootstrap } = await fetchLeagueDetails(leagueId);
         setTeams(leagueTeams);
         setFplTeams(bootstrap.teams);
+        setBootstrapData(bootstrap);
 
         const nextGameweek = bootstrap.events.find(e => e.is_next);
         if (nextGameweek) {
@@ -79,16 +81,57 @@ const App: React.FC = () => {
         }
 
       } catch (err) {
+        hadError = true;
         console.error("Failed to fetch FPL league data:", err);
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
         setFetchError(`Could not load league data. This might be due to a few reasons: the FPL API is temporarily down, the league ID is invalid/private, or the CORS proxy service is having issues. Please try again in a few moments. (Error: ${errorMessage})`);
       } finally {
-        setIsFetchingLeague(false);
+        if (hadError) {
+            setIsFetchingLeague(false);
+        } else {
+            const dataFetchTime = Date.now() - startTime;
+            const minLoaderTime = 4000; // Ensures the loader animation completes two full cycles for a smoother UX.
+            const remainingTime = minLoaderTime - dataFetchTime;
+            
+            if (remainingTime > 0) {
+                setTimeout(() => {
+                setIsFetchingLeague(false);
+                }, remainingTime);
+            } else {
+                setIsFetchingLeague(false);
+            }
+        }
       }
     };
 
     loadLeagueData();
   }, [leagueId]);
+
+  const loadFullTeamData = useCallback(async () => {
+    if (areTeamsFullyLoaded || isFetchingDetails || !bootstrapData) return;
+
+    setIsFetchingDetails(true);
+    try {
+        const updatedTeams = await Promise.all(
+            teams.map(async (team) => {
+                // Check if history is partial (only contains the placeholder from initial load)
+                if (team.gameweekHistory.length <= 1 && team.transferHistory.length === 0) { 
+                    const { gameweekHistory, transferHistory } = await fetchMissingTeamData(team.id, bootstrapData);
+                    return { ...team, gameweekHistory, transferHistory };
+                }
+                return team;
+            })
+        );
+        setTeams(updatedTeams);
+        setAreTeamsFullyLoaded(true);
+    } catch (err) {
+        console.error("Failed to fetch detailed team data:", err);
+        setError("Failed to load detailed performance and transfer data for the teams.");
+    } finally {
+        setIsFetchingDetails(false);
+    }
+}, [teams, areTeamsFullyLoaded, isFetchingDetails, bootstrapData]);
+
 
   const handleAnalyzeTeam = useCallback(async (teamId: number) => {
     const teamToAnalyze = teams.find(t => t.id === teamId);
@@ -190,11 +233,26 @@ const App: React.FC = () => {
     setPredictedStandings(null);
     setLuckAnalysis(null);
     setLeagueId(id);
+    setAreTeamsFullyLoaded(false);
+    setIsFetchingDetails(false);
+    setBootstrapData(null);
   };
 
   const handleChangeLeague = () => {
     setLeagueId(null);
     setTeams([]);
+    setAreTeamsFullyLoaded(false);
+    setBootstrapData(null);
+  };
+
+  const handleNavigate = (e: React.MouseEvent, view: View) => {
+    setShockwave({ x: e.clientX, y: e.clientY, key: Date.now() });
+    
+    if (view === View.Chart && !areTeamsFullyLoaded && !isFetchingDetails) {
+        loadFullTeamData();
+    }
+
+    setActiveView(view);
   };
 
   const renderView = () => {
@@ -229,6 +287,14 @@ const App: React.FC = () => {
                         onAnalyzeLuck={handleAnalyzeLuck}
                     />;
         case View.Chart:
+            if (isFetchingDetails) {
+                return (
+                    <div className="flex flex-col items-center justify-center h-96">
+                        <Loader />
+                        <p className="mt-4 text-brand-text-muted animate-pulse">Loading detailed performance data...</p>
+                    </div>
+                );
+            }
             return <PerformanceChart teams={teams} />;
         case View.Rankings:
             return <TeamRankings
@@ -313,11 +379,19 @@ const App: React.FC = () => {
       className="responsive-bg min-h-screen bg-cover bg-fixed bg-center"
     >
       <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/60 backdrop-blur-[2px] overflow-hidden relative">
+        {shockwave && (
+          <Shockwave
+            key={shockwave.key}
+            x={shockwave.x}
+            y={shockwave.y}
+            onComplete={() => setShockwave(null)}
+          />
+        )}
         <AnimatePresence>
           {isFetchingLeague && <HexagonLoader />}
         </AnimatePresence>
         {showHeader &&
-            <Header activeView={activeView} setActiveView={setActiveView} onChangeLeague={handleChangeLeague} />
+            <Header activeView={activeView} onNavigate={handleNavigate} onChangeLeague={handleChangeLeague} />
         }
         <div className="flex-1 overflow-y-auto">
           {renderContent()}

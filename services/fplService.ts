@@ -1,6 +1,6 @@
-import type { Team, FplBootstrap, FplLeague, FplHistory, FplPicks, FplFixture, FplLiveGameweek, FplTransferHistory, FplElementSummary, FplPlayerGameweekHistory, LivePlayer } from '../types';
+import type { Team, FplBootstrap, FplLeague, FplHistory, FplPicks, FplFixture, FplLiveGameweek, FplTransferHistory, FplElementSummary, FplPlayerGameweekHistory, LivePlayer, Transfer, GameweekHistory } from '../types';
 
-const CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
+const CORS_PROXY = 'https://cors.eu.org/';
 const FPL_API_BASE = 'https://fantasy.premierleague.com/api/';
 
 const fetchData = async <T>(url: string): Promise<T> => {
@@ -21,6 +21,36 @@ export const fetchLiveGameweekData = async (gameweekId: number): Promise<FplLive
     return fetchData<FplLiveGameweek>(`${FPL_API_BASE}event/${gameweekId}/live/`);
 };
 
+export const fetchMissingTeamData = async (teamId: number, bootstrapData: FplBootstrap): Promise<{ gameweekHistory: GameweekHistory[], transferHistory: Transfer[] }> => {
+    const [historyData, transferData] = await Promise.all([
+        fetchData<FplHistory>(`${FPL_API_BASE}entry/${teamId}/history/`),
+        fetchData<FplTransferHistory[]>(`${FPL_API_BASE}entry/${teamId}/transfers/`)
+    ]);
+
+    const gameweekHistory = historyData.current.map(gw => ({
+        gameweek: gw.event,
+        points: gw.points,
+        totalPoints: gw.total_points,
+        transferCost: gw.event_transfers_cost,
+    }));
+
+    const transferHistory = transferData.map(t => {
+        const playerIn = bootstrapData.elements.find(e => e.id === t.element_in);
+        const playerOut = bootstrapData.elements.find(e => e.id === t.element_out);
+        
+        return {
+            gameweek: t.event,
+            playerIn: playerIn ? `${playerIn.first_name} ${playerIn.second_name}` : 'Unknown Player',
+            playerOut: playerOut ? `${playerOut.first_name} ${playerOut.second_name}` : 'Unknown Player',
+            time: t.time,
+            playerInPoints: 0,
+            playerOutPoints: 0,
+        };
+    }).sort((a, b) => b.gameweek - a.gameweek || new Date(b.time).getTime() - new Date(a.time).getTime());
+
+    return { gameweekHistory, transferHistory };
+};
+
 
 export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Team[], bootstrap: FplBootstrap }> => {
     const bootstrapData = await fetchData<FplBootstrap>(`${FPL_API_BASE}bootstrap-static/`);
@@ -39,26 +69,6 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
     const livePlayerScores = new Map<number, number>();
     liveData.elements.forEach(p => livePlayerScores.set(p.id, p.stats.total_points));
 
-    const playerHistoryCache = new Map<number, FplPlayerGameweekHistory[]>();
-    const getPlayerGameweekPoints = async (playerId: number, gameweek: number): Promise<number> => {
-        let history = playerHistoryCache.get(playerId);
-        if (history === undefined) {
-            try {
-                const summary = await fetchData<FplElementSummary>(`${FPL_API_BASE}element-summary/${playerId}/`);
-                history = summary.history;
-                playerHistoryCache.set(playerId, history); // Only cache on success
-            } catch (e) {
-                console.error(`Failed to fetch history for player ${playerId}`, e);
-                // Don't cache failure. Return 0 for this attempt, allowing a re-fetch next time.
-                return 0;
-            }
-        }
-        
-        const gameweekData = history.find(h => h.event === gameweek);
-        return gameweekData ? gameweekData.total_points : 0;
-    };
-
-
     const teamStandings = leagueData.standings.results;
     if (!teamStandings || teamStandings.length === 0) {
         return { teams: [], bootstrap: bootstrapData };
@@ -67,10 +77,9 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
     const teamsDataPromises = teamStandings.map(async (standing) => {
         const teamId = standing.entry;
 
-        const [historyData, picksData, transferData] = await Promise.all([
-            fetchData<FplHistory>(`${FPL_API_BASE}entry/${teamId}/history/`),
+        // OPTIMIZATION: Only fetch picks data initially. History and transfers will be lazy-loaded.
+        const [picksData] = await Promise.all([
             fetchData<FplPicks>(`${FPL_API_BASE}entry/${teamId}/event/${currentGameweek.id}/picks/`),
-            fetchData<FplTransferHistory[]>(`${FPL_API_BASE}entry/${teamId}/transfers/`)
         ]);
 
         let liveGwPoints = 0;
@@ -112,34 +121,14 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
                 };
             }).filter((p): p is LivePlayer => p !== null);
 
-        const transferHistoryPromises = transferData.map(async t => {
-            const playerIn = bootstrapData.elements.find(e => e.id === t.element_in);
-            const playerOut = bootstrapData.elements.find(e => e.id === t.element_out);
-            
-            const [playerInPoints, playerOutPoints] = await Promise.all([
-                getPlayerGameweekPoints(t.element_in, t.event),
-                getPlayerGameweekPoints(t.element_out, t.event),
-            ]);
-            
-            return {
-                gameweek: t.event,
-                playerIn: playerIn ? `${playerIn.first_name} ${playerIn.second_name}` : 'Unknown Player',
-                playerOut: playerOut ? `${playerOut.first_name} ${playerOut.second_name}` : 'Unknown Player',
-                time: t.time,
-                playerInPoints,
-                playerOutPoints,
-            };
-        });
+        const transferHistory: Transfer[] = [];
 
-        const transferHistory = (await Promise.all(transferHistoryPromises))
-            .sort((a, b) => b.gameweek - a.gameweek || new Date(b.time).getTime() - new Date(a.time).getTime());
-
-        const gameweekHistory = historyData.current.map(gw => ({
-            gameweek: gw.event,
-            points: gw.points,
-            totalPoints: gw.total_points,
-            transferCost: gw.event_transfers_cost,
-        }));
+        const gameweekHistory: GameweekHistory[] = [{
+            gameweek: currentGameweek.id,
+            points: 0, // Not available in light fetch
+            totalPoints: standing.total,
+            transferCost: 0, // Not available in light fetch
+        }];
 
         return {
             id: teamId,

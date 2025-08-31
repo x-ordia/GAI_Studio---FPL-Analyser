@@ -54,7 +54,8 @@ const HexagonLoader: React.FC = () => {
                 opacity: 1,
                 transition: {
                     delay: (i.col * 0.025) + (i.row * 0.015),
-                    type: 'spring', stiffness: 200, damping: 18,
+                    duration: 0.3,
+                    ease: 'easeOut',
                 }
             }));
             
