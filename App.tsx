@@ -376,9 +376,9 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="responsive-bg min-h-screen bg-cover bg-fixed bg-center"
+      className="responsive-bg h-full bg-cover bg-fixed bg-center"
     >
-      <div className="h-screen flex flex-col text-brand-text font-sans bg-brand-dark/60 backdrop-blur-[2px] relative">
+      <div className="h-full flex flex-col text-brand-text font-sans bg-brand-dark/60 backdrop-blur-[2px] relative">
         {shockwave && (
           <Shockwave
             key={shockwave.key}
