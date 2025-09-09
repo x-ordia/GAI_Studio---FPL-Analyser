@@ -4,6 +4,7 @@ import { ChartBarIcon } from './icons/ChartBarIcon';
 import { RobotIcon } from './icons/RobotIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import { UsersGroupIcon } from './icons/UsersGroupIcon';
+import { SearchIcon } from './icons/SearchIcon';
 
 interface HeaderProps {
   activeView: View;
@@ -16,6 +17,7 @@ const navItems = [
   { view: View.Chart, label: 'Performance', mobileLabel: 'Chart', icon: ChartBarIcon },
   { view: View.Rankings, label: 'AI Rankings', mobileLabel: 'Rankings', icon: RobotIcon },
   { view: View.PvP, label: 'PvP', mobileLabel: 'PvP', icon: UsersGroupIcon },
+  { view: View.Scout, label: 'Scout', mobileLabel: 'Scout', icon: SearchIcon },
 ];
 
 const Header: React.FC<HeaderProps> = ({ activeView, onNavigate, onChangeLeague }) => {

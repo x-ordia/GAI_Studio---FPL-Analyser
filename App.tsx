@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis, FplBootstrap } from './types';
-import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck } from './services/geminiService';
+import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis, FplBootstrap, ScoutResult } from './types';
+import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck, fetchExpertStrategies } from './services/geminiService';
 import { fetchLeagueDetails, fetchFixtures, fetchMissingTeamData } from './services/fplService';
 import Header from './components/Header';
 import PerformanceChart from './components/PerformanceChart';
@@ -9,6 +9,7 @@ import Loader from './components/Loader';
 import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
 import PvpAnalysis from './components/PvpAnalysis';
+import Scout from './components/Scout';
 import HexagonLoader from './components/HexagonLoader';
 import Shockwave from './components/Shockwave';
 import { motion, AnimatePresence, Transition } from 'framer-motion';
@@ -50,6 +51,11 @@ const App: React.FC = () => {
   const [isLoadingPredictions, setIsLoadingPredictions] = useState<boolean>(false);
   const [luckAnalysis, setLuckAnalysis] = useState<LuckAnalysis[] | null>(null);
   const [isLoadingLuck, setIsLoadingLuck] = useState<boolean>(false);
+  
+  // Scout data
+  const [scoutResult, setScoutResult] = useState<ScoutResult | null>(null);
+  const [isLoadingScout, setIsLoadingScout] = useState<boolean>(false);
+
 
   const [shockwave, setShockwave] = useState<{ x: number, y: number, key: number } | null>(null);
 
@@ -68,6 +74,7 @@ const App: React.FC = () => {
         setKeyMatches(null);
         setPredictedStandings(null);
         setLuckAnalysis(null);
+        setScoutResult(null);
 
         const { teams: leagueTeams, bootstrap } = await fetchLeagueDetails(leagueId);
         setTeams(leagueTeams);
@@ -223,6 +230,30 @@ const App: React.FC = () => {
     }
   }, [teams]);
 
+  const handleFetchExpertStrategies = useCallback(async (teamId: number) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+
+    setError(null);
+    setScoutResult(null);
+    setIsLoadingScout(true);
+
+    try {
+        if (!process.env.API_KEY) {
+            throw new Error("API key is not configured.");
+        }
+        const result = await fetchExpertStrategies(team);
+        setScoutResult(result);
+    } catch (err) {
+        console.error("Error fetching expert strategies:", err);
+        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+        setError(`Failed to fetch expert strategies: ${errorMessage}`);
+    } finally {
+        setIsLoadingScout(false);
+    }
+  }, [teams]);
+
+
   const handleLeagueSubmit = (id: number) => {
     setTeams([]);
     setAiScores({});
@@ -232,6 +263,7 @@ const App: React.FC = () => {
     setActiveView(View.Dashboard);
     setPredictedStandings(null);
     setLuckAnalysis(null);
+    setScoutResult(null);
     setLeagueId(id);
     setAreTeamsFullyLoaded(false);
     setIsFetchingDetails(false);
@@ -247,9 +279,14 @@ const App: React.FC = () => {
 
   const handleNavigate = (view: View) => {
     setShockwave({ x: window.innerWidth / 2, y: window.innerHeight / 2, key: Date.now() });
-    
+    setError(null); // Clear errors on navigation
+
     if (view === View.Chart && !areTeamsFullyLoaded && !isFetchingDetails) {
         loadFullTeamData();
+    }
+    
+    if (view !== View.Scout) {
+        setScoutResult(null); // Clear suggestions when leaving scout page
     }
 
     setActiveView(view);
@@ -305,6 +342,13 @@ const App: React.FC = () => {
                     />;
         case View.PvP:
             return <PvpAnalysis teams={teams} fixtures={fixtures} fplTeams={fplTeams} />;
+        case View.Scout:
+            return <Scout 
+                        teams={teams}
+                        scoutResult={scoutResult}
+                        isLoading={isLoadingScout}
+                        onFetchStrategies={handleFetchExpertStrategies}
+                    />;
         default:
             return null;
     }

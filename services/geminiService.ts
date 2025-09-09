@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckAnalysis, FplFixture, FplTeamInfo, PvpAnalysisResult } from '../types';
+import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckAnalysis, FplFixture, FplTeamInfo, PvpAnalysisResult, ScoutResult, GroundingSource, ExpertStrategy } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -354,4 +354,77 @@ Return your response ONLY in the specified JSON format.
     console.error("Gemini API call for PvP analysis failed:", error);
     throw new Error("The AI head-to-head analysis failed.");
   }
+};
+
+export const fetchExpertStrategies = async (team: Team): Promise<ScoutResult> => {
+    const squadList = team.players.map(p => `- ${p.name} (${p.position}, ${p.team})`).join('\n');
+
+    const prompt = `
+You are an FPL web research assistant. Your task is to search the web for the latest Fantasy Premier League strategy articles and videos for the upcoming gameweek. Your analysis must be tailored for a manager who currently has this team:
+
+**Current Squad:**
+${squadList}
+
+**Your Task:**
+1.  **Find and Summarize Sources:**
+    *   Find 2-3 different articles from reputable FPL expert sources (e.g., fantasyfootballscout.co.uk, premierleague.com, fpl.team, etc.).
+    *   In addition, find and analyze the latest gameweek advice from two different famous FPL YouTubers. Summarize their strategies, but only include them if you believe their advice is genuinely helpful and relevant to the manager's current squad.
+2.  **For each source, create a report containing:**
+    *   **\`sourceName\`**: The title of the article, website name, or YouTuber's name.
+    *   **\`keyTakeaways\`**: A list of 2-3 short, actionable bullet points. This is the most important part. Examples: "Transfer Son for Saka", "Captain Palmer", "Hold Watkins for 2 more gameweeks", "Consider using Bench Boost chip".
+    *   **\`strategySummary\`**: A detailed, blog-style summary of the advice. This could include players to target, captaincy candidates, teams to focus on, or general tactical advice for the gameweek.
+3.  **Output Format:**
+    *   Return your response ONLY as a stringified JSON object.
+    *   The JSON object should follow this exact structure:
+        {
+          "strategies": [
+            {
+              "sourceName": "Article Title or YouTuber Name",
+              "keyTakeaways": [
+                "Actionable tip 1",
+                "Actionable tip 2"
+              ],
+              "strategySummary": "A detailed, blog-style summary of the advice..."
+            }
+          ]
+        }
+    *   Do not include any other text, explanations, or markdown formatting like \`\`\`json.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                tools: [{ googleSearch: {} }],
+            },
+        });
+
+        const sources: GroundingSource[] = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map(
+            (chunk: { web: GroundingSource }) => ({
+                uri: chunk.web.uri,
+                title: chunk.web.title,
+            })
+        ).filter(source => source.uri) ?? [];
+        
+        let jsonString = response.text.trim();
+        
+        const match = jsonString.match(/```(json)?\s*([\s\S]*?)\s*```/);
+        if (match && match[2]) {
+            jsonString = match[2];
+        }
+
+        const result = JSON.parse(jsonString);
+        const strategies: ExpertStrategy[] = result.strategies || [];
+
+        if (!Array.isArray(strategies)) {
+             throw new Error("Invalid 'strategies' format received from API.");
+        }
+
+        return { strategies, sources };
+
+    } catch (error) {
+        console.error("Gemini API call for expert strategies failed:", error);
+        throw new Error("The AI web scout failed. The response might not be valid JSON.");
+    }
 };

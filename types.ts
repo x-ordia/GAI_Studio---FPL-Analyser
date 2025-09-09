@@ -51,6 +51,7 @@ export enum View {
   Chart = 'chart',
   Rankings = 'rankings',
   PvP = 'pvp',
+  Scout = 'scout',
 }
 
 export interface KeyMatch {
@@ -84,6 +85,22 @@ export interface PvpAnalysisResult {
   team1PredictedScore: number;
   team2PredictedScore: number;
   justification: string;
+}
+
+export interface GroundingSource {
+  uri: string;
+  title: string;
+}
+
+export interface ExpertStrategy {
+    sourceName: string;
+    keyTakeaways: string[];
+    strategySummary: string;
+}
+
+export interface ScoutResult {
+    strategies: ExpertStrategy[];
+    sources: GroundingSource[];
 }
 
 
