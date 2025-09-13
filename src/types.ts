@@ -20,10 +20,6 @@ export interface FplLiveElementStats {
     bonus: number;
     bps: number;
     total_points: number;
-    // New defensive stats for 2024/2025 season
-    clearances_blocks_interceptions: number;
-    tackles: number;
-    recoveries: number;
 }
 
 export interface LivePlayer extends Player {
@@ -31,10 +27,9 @@ export interface LivePlayer extends Player {
     isCaptain: boolean;
     isViceCaptain: boolean;
     multiplier: number;
-    squadPosition: number; // The player's position in the squad list (1-15)
-    // FIX: Changed from an optional property to a required property that can be undefined.
-    // This resolves a type predicate error in fplService.ts because the objects
-    // being created always include this property, even if its value is undefined.
+    // FIX: Changed from optional property to required property that can be undefined.
+    // This resolves a type predicate error in fplService.ts by making this type
+    // compatible with the objects being created, which always include this property.
     liveStats: FplLiveElementStats | undefined;
 }
 
@@ -69,11 +64,10 @@ export interface Team {
 
 export enum View {
   Dashboard = 'dashboard',
-  History = 'history',
+  Chart = 'chart',
   PvP = 'pvp',
   Players = 'players',
   Scout = 'scout',
-  Analysis = 'analysis',
 }
 
 export interface KeyMatch {
@@ -84,7 +78,7 @@ export interface KeyMatch {
 export interface PredictedStanding {
   rank: number;
   teamName: string;
-  justification:string;
+  justification: string;
 }
 
 export interface PlayerOwnership {
@@ -186,8 +180,6 @@ export interface FplPlayer {
 export interface FplTeamInfo {
     id: number;
     name: string;
-    short_name: string;
-    form: number | null;
 }
 
 export interface FplPosition {
@@ -197,15 +189,9 @@ export interface FplPosition {
 
 export interface FplFixture {
   id: number;
-  kickoff_time: string | null;
+  kickoff_time: string;
   team_h: number;
   team_a: number;
-  event: number | null; // Gameweek
-  finished: boolean;
-  team_h_difficulty: number;
-  team_a_difficulty: number;
-  team_h_score: number | null;
-  team_a_score: number | null;
 }
 
 export interface FplLiveElement {

@@ -1,65 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Player, AiAnalysisResult, KeyMatch, Team, PredictedStanding, LuckAnalysis, FplFixture, FplTeamInfo, PvpAnalysisResult, ScoutResult, GroundingSource, ExpertStrategy } from '../types';
+import type { KeyMatch, Team, PredictedStanding, LuckAnalysis, FplFixture, FplTeamInfo, PvpAnalysisResult, ScoutResult, GroundingSource, ExpertStrategy } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
-export const analyzeTeamStrength = async (players: Player[]): Promise<AiAnalysisResult> => {
-  const playerList = players.map(p => `- ${p.name} (${p.position} from ${p.team})`).join('\n');
-
-  const prompt = `
-    Analyze the following Fantasy Premier League (FPL) team based on the provided list of 11 starting players.
-    
-    Team Players:
-    ${playerList}
-
-    Your Task:
-    1.  Act as an expert FPL analyst.
-    2.  Consider the players' current form, their teams' general performance, and their likely upcoming fixtures over the next 3-4 gameweeks. You do not need real-time data, use your general knowledge.
-    3.  Evaluate the team's overall balance (attack, midfield, defense, goalkeeper).
-    4.  Provide a final "Team Strength Score" on a scale from 0 to 100, where 100 is a perfect team with high potential for points.
-    5.  Provide a brief, insightful "Justification" for your score (2-3 sentences). Highlight one key strength and one potential weakness.
-
-    Return the result ONLY in the specified JSON format.
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            score: {
-              type: Type.NUMBER,
-              description: "The team strength score from 0 to 100.",
-            },
-            justification: {
-              type: Type.STRING,
-              description: "A brief analysis of the team's strengths and weaknesses.",
-            },
-          },
-          required: ["score", "justification"],
-        },
-        temperature: 0.5,
-      },
-    });
-
-    const jsonString = response.text.trim();
-    const result = JSON.parse(jsonString);
-
-    if (typeof result.score === 'number' && typeof result.justification === 'string') {
-      return result as AiAnalysisResult;
-    } else {
-      throw new Error("Invalid JSON structure received from API.");
-    }
-
-  } catch (error) {
-    console.error("Gemini API call failed:", error);
-    throw new Error("The AI analysis failed. Please check your API key and try again.");
-  }
-};
 
 export const analyzeFixtures = async (fixtures: string[]): Promise<KeyMatch[]> => {
   const prompt = `

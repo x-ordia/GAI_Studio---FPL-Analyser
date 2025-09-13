@@ -1,4 +1,4 @@
-import type { Team, FplBootstrap, FplLeague, FplHistory, FplPicks, FplFixture, FplLiveGameweek, FplTransferHistory, FplElementSummary, FplPlayerGameweekHistory, LivePlayer, Transfer, GameweekHistory } from '../types';
+import type { Team, FplBootstrap, FplLeague, FplHistory, FplPicks, FplFixture, FplLiveGameweek, FplTransferHistory, FplElementSummary, FplPlayerGameweekHistory, LivePlayer, Transfer, GameweekHistory, FplLiveElementStats } from '../types';
 
 const CORS_PROXY = 'https://cors.eu.org/';
 const FPL_API_BASE = 'https://fantasy.premierleague.com/api/';
@@ -15,6 +15,10 @@ const fetchData = async <T>(url: string): Promise<T> => {
 
 export const fetchFixtures = async (gameweekId: number): Promise<FplFixture[]> => {
     return fetchData<FplFixture[]>(`${FPL_API_BASE}fixtures/?event=${gameweekId}`);
+};
+
+export const fetchAllFixtures = async (): Promise<FplFixture[]> => {
+    return fetchData<FplFixture[]>(`${FPL_API_BASE}fixtures/`);
 };
 
 export const fetchLiveGameweekData = async (gameweekId: number): Promise<FplLiveGameweek> => {
@@ -66,8 +70,8 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
     }
 
     const liveData = await fetchLiveGameweekData(currentGameweek.id);
-    const livePlayerScores = new Map<number, number>();
-    liveData.elements.forEach(p => livePlayerScores.set(p.id, p.stats.total_points));
+    const livePlayerStats = new Map<number, FplLiveElementStats>();
+    liveData.elements.forEach(p => livePlayerStats.set(p.id, p.stats));
 
     const teamStandings = leagueData.standings.results;
     if (!teamStandings || teamStandings.length === 0) {
@@ -93,7 +97,8 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
 
                 const playerTeam = bootstrapData.teams.find(t => t.id === playerData.team);
                 const playerPosition = bootstrapData.element_types.find(et => et.id === playerData.element_type);
-                const points = livePlayerScores.get(p.element) ?? 0;
+                const stats = livePlayerStats.get(p.element);
+                const points = stats?.total_points ?? 0;
                 
                 if (p.position <= 11) {
                     liveGwPoints += points * p.multiplier;
@@ -118,6 +123,8 @@ export const fetchLeagueDetails = async (leagueId: number): Promise<{ teams: Tea
                     isCaptain: p.is_captain,
                     isViceCaptain: p.is_vice_captain,
                     multiplier: p.multiplier,
+                    squadPosition: p.position,
+                    liveStats: stats,
                 };
             }).filter((p): p is LivePlayer => p !== null);
 

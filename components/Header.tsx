@@ -1,10 +1,11 @@
 import React from 'react';
 import { View } from '../types';
 import { ChartBarIcon } from './icons/ChartBarIcon';
-import { RobotIcon } from './icons/RobotIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import { UsersGroupIcon } from './icons/UsersGroupIcon';
 import { SearchIcon } from './icons/SearchIcon';
+import { ClipboardListIcon } from './icons/ClipboardListIcon';
+import { SparklesIcon } from './icons/SparklesIcon';
 
 interface HeaderProps {
   activeView: View;
@@ -14,9 +15,10 @@ interface HeaderProps {
 
 const navItems = [
   { view: View.Dashboard, label: 'Dashboard', mobileLabel: 'Dashboard', icon: HomeIcon },
-  { view: View.Chart, label: 'Performance', mobileLabel: 'Chart', icon: ChartBarIcon },
-  { view: View.Rankings, label: 'AI Rankings', mobileLabel: 'Rankings', icon: RobotIcon },
+  { view: View.History, label: 'History', mobileLabel: 'History', icon: ChartBarIcon },
+  { view: View.Analysis, label: 'Analysis', mobileLabel: 'Analysis', icon: SparklesIcon },
   { view: View.PvP, label: 'PvP', mobileLabel: 'PvP', icon: UsersGroupIcon },
+  { view: View.Players, label: 'Players', mobileLabel: 'Players', icon: ClipboardListIcon },
   { view: View.Scout, label: 'Scout', mobileLabel: 'Scout', icon: SearchIcon },
 ];
 
@@ -37,7 +39,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, onNavigate, onChangeLeague 
       <header className="bg-brand-surface/50 backdrop-blur-lg sticky top-0 z-50 border-b border-white/10 shadow-md">
         <div className="container mx-auto flex justify-between items-center p-4">
           <h1 className="text-xl md:text-2xl font-bold text-brand-text tracking-wider">
-            FPL<span className="text-brand-accent">.AI</span> Ranker
+            Mini League <span className="text-brand-accent">Metrics</span>
           </h1>
           <div className="flex items-center space-x-2 md:space-x-4">
             {/* Desktop Navigation */}

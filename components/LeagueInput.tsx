@@ -23,7 +23,7 @@ const LeagueInput: React.FC<LeagueInputProps> = ({ onSubmit }) => {
     <div className="min-h-full text-brand-text flex justify-center items-center p-4">
       <div className="w-full max-w-md bg-brand-surface backdrop-blur-sm border border-white/10 rounded-2xl shadow-2xl shadow-brand-accent/10 p-8 text-center animate-fadeIn">
         <h1 className="text-3xl md:text-4xl font-bold text-brand-text tracking-wider mb-2">
-          FPL<span className="text-brand-accent">.AI</span> Ranker
+          Mini League <span className="text-brand-accent">Metrics</span>
         </h1>
         <p className="text-brand-text-muted mb-8">Enter your FPL mini-league ID to begin analysis.</p>
         
@@ -46,11 +46,7 @@ const LeagueInput: React.FC<LeagueInputProps> = ({ onSubmit }) => {
 
         {error && <p className="text-brand-danger mt-4">{error}</p>}
         
-        <div className="mt-8 text-sm text-brand-text-muted bg-black/20 p-3 rounded-lg border border-white/10">
-          <p>
-            <strong className="text-brand-text">Important:</strong> For this tool to work, your FPL league must be set to <strong className="text-brand-text">"Public"</strong>.
-          </p>
-        </div>
+        
       </div>
     </div>
   );

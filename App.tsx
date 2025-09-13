@@ -1,15 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Team, AiAnalysisResult, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis, FplBootstrap, ScoutResult } from './types';
-import { analyzeTeamStrength, analyzeFixtures, predictFinalStandings, analyzeLeagueLuck, fetchExpertStrategies } from './services/geminiService';
-import { fetchLeagueDetails, fetchFixtures, fetchMissingTeamData } from './services/fplService';
+import { Team, View, FplFixture, FplTeamInfo, KeyMatch, PredictedStanding, LuckAnalysis, FplBootstrap, ScoutResult, GameweekHistory } from './types';
+import { analyzeFixtures, predictFinalStandings, analyzeLeagueLuck, fetchExpertStrategies } from './services/geminiService';
+import { fetchLeagueDetails, fetchFixtures, fetchMissingTeamData, fetchAllFixtures } from './services/fplService';
 import Header from './components/Header';
-import PerformanceChart from './components/PerformanceChart';
-import TeamRankings from './components/TeamRankings';
 import Loader from './components/Loader';
 import LeagueInput from './components/LeagueInput';
 import Dashboard from './components/Dashboard';
+import Analysis from './components/Analysis';
 import PvpAnalysis from './components/PvpAnalysis';
 import Scout from './components/Scout';
+import Players from './components/Players';
+import TransferHistory from './components/TransferHistory';
 import HexagonLoader from './components/HexagonLoader';
 import Shockwave from './components/Shockwave';
 import { motion, AnimatePresence, Transition } from 'framer-motion';
@@ -30,8 +31,6 @@ const App: React.FC = () => {
   const [leagueId, setLeagueId] = useState<number | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [activeView, setActiveView] = useState<View>(View.Dashboard);
-  const [aiScores, setAiScores] = useState<Record<number, AiAnalysisResult | null>>({});
-  const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   
   const [isFetchingLeague, setIsFetchingLeague] = useState<boolean>(false);
@@ -44,7 +43,9 @@ const App: React.FC = () => {
 
   // Dashboard data
   const [fixtures, setFixtures] = useState<FplFixture[]>([]);
+  const [allFixtures, setAllFixtures] = useState<FplFixture[]>([]);
   const [fplTeams, setFplTeams] = useState<FplTeamInfo[]>([]);
+  const [currentGameweek, setCurrentGameweek] = useState<number | null>(null);
   const [keyMatches, setKeyMatches] = useState<KeyMatch[] | null>(null);
   const [isLoadingKeyMatches, setIsLoadingKeyMatches] = useState<boolean>(false);
   const [predictedStandings, setPredictedStandings] = useState<PredictedStanding[] | null>(null);
@@ -71,6 +72,7 @@ const App: React.FC = () => {
         setIsFetchingLeague(true);
         setTeams([]);
         setFixtures([]);
+        setAllFixtures([]);
         setKeyMatches(null);
         setPredictedStandings(null);
         setLuckAnalysis(null);
@@ -81,10 +83,15 @@ const App: React.FC = () => {
         setFplTeams(bootstrap.teams);
         setBootstrapData(bootstrap);
 
-        const nextGameweek = bootstrap.events.find(e => e.is_next);
-        if (nextGameweek) {
-          const fixtureData = await fetchFixtures(nextGameweek.id);
-          setFixtures(fixtureData);
+        const currentEvent = bootstrap.events.find(e => e.is_current);
+        const nextEvent = bootstrap.events.find(e => e.is_next);
+        const gameweekForFixtures = nextEvent || currentEvent;
+
+        setCurrentGameweek(currentEvent?.id ?? nextEvent?.id ?? null);
+        
+        if (gameweekForFixtures) {
+            const fixtureData = await fetchFixtures(gameweekForFixtures.id);
+            setFixtures(fixtureData);
         }
 
       } catch (err) {
@@ -113,6 +120,19 @@ const App: React.FC = () => {
 
     loadLeagueData();
   }, [leagueId]);
+  
+  useEffect(() => {
+    if (!bootstrapData) return;
+    const loadAllFixtures = async () => {
+        try {
+            const fixturesData = await fetchAllFixtures();
+            setAllFixtures(fixturesData);
+        } catch (err) {
+            console.error("Failed to load all fixtures data:", err);
+        }
+    };
+    loadAllFixtures();
+  }, [bootstrapData]);
 
   const loadFullTeamData = useCallback(async () => {
     if (areTeamsFullyLoaded || isFetchingDetails || !bootstrapData) return;
@@ -124,6 +144,37 @@ const App: React.FC = () => {
                 // Check if history is partial (only contains the placeholder from initial load)
                 if (team.gameweekHistory.length <= 1 && team.transferHistory.length === 0) { 
                     const { gameweekHistory, transferHistory } = await fetchMissingTeamData(team.id, bootstrapData);
+
+                    const currentGameweek = bootstrapData.events.find(e => e.is_current);
+
+                    if (currentGameweek) {
+                        const isCurrentGwInHistory = gameweekHistory.some(gw => gw.gameweek === currentGameweek.id);
+                        
+                        // The /history endpoint from FPL API doesn't include the live gameweek.
+                        // We need to manually construct and append it to the history for the chart.
+                        if (!isCurrentGwInHistory && team.liveGwPoints !== undefined) {
+                            
+                            // `team.gameweekHistory[0].totalPoints` holds the `total` from the league standings API,
+                            // which is the score *before* the current GW's match points, but *after* transfer costs.
+                            // This is our base for the new total.
+                            const totalPointsBeforeLiveGw = team.gameweekHistory[0]?.totalPoints || 0;
+                            
+                            // We can deduce the transfer cost for the current GW by comparing the previous GW's
+                            // total points with the current standings total.
+                            const lastCompletedGw = gameweekHistory.length > 0 ? gameweekHistory[gameweekHistory.length - 1] : null;
+                            const totalPointsAtEndOfLastGw = lastCompletedGw ? lastCompletedGw.totalPoints : 0;
+                            const transferCost = totalPointsAtEndOfLastGw > 0 ? totalPointsAtEndOfLastGw - totalPointsBeforeLiveGw : 0;
+
+                            const liveGameweekEntry: GameweekHistory = {
+                                gameweek: currentGameweek.id,
+                                points: team.liveGwPoints,
+                                transferCost: transferCost,
+                                totalPoints: totalPointsBeforeLiveGw + team.liveGwPoints
+                            };
+                            gameweekHistory.push(liveGameweekEntry);
+                        }
+                    }
+
                     return { ...team, gameweekHistory, transferHistory };
                 }
                 return team;
@@ -139,29 +190,13 @@ const App: React.FC = () => {
     }
 }, [teams, areTeamsFullyLoaded, isFetchingDetails, bootstrapData]);
 
-
-  const handleAnalyzeTeam = useCallback(async (teamId: number) => {
-    const teamToAnalyze = teams.find(t => t.id === teamId);
-    if (!teamToAnalyze) return;
-    
-    setError(null);
-    setLoadingStates(prev => ({ ...prev, [teamId]: true }));
-    setAiScores(prev => ({...prev, [teamId]: null}));
-
-    try {
-      if (!process.env.API_KEY) {
-        throw new Error("API key is not configured. Please set the API_KEY environment variable.");
-      }
-      const result = await analyzeTeamStrength(teamToAnalyze.players.slice(0, 11));
-      setAiScores(prev => ({ ...prev, [teamId]: result }));
-    } catch (err) {
-      console.error("Error analyzing team:", err);
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred during AI analysis.";
-      setError(`Failed to analyze ${teamToAnalyze.teamName}: ${errorMessage}`);
-    } finally {
-      setLoadingStates(prev => ({ ...prev, [teamId]: false }));
+  // Automatically fetch detailed data for the chart once the initial league data is loaded.
+  useEffect(() => {
+    if (teams.length > 0 && !isFetchingLeague && !areTeamsFullyLoaded && !isFetchingDetails) {
+        loadFullTeamData();
     }
-  }, [teams]);
+  }, [teams, isFetchingLeague, areTeamsFullyLoaded, isFetchingDetails, loadFullTeamData]);
+
 
   const handleAnalyzeKeyMatches = useCallback(async () => {
     if (fixtures.length === 0 || fplTeams.length === 0) return;
@@ -256,8 +291,6 @@ const App: React.FC = () => {
 
   const handleLeagueSubmit = (id: number) => {
     setTeams([]);
-    setAiScores({});
-    setLoadingStates({});
     setError(null);
     setFetchError(null);
     setActiveView(View.Dashboard);
@@ -268,6 +301,8 @@ const App: React.FC = () => {
     setAreTeamsFullyLoaded(false);
     setIsFetchingDetails(false);
     setBootstrapData(null);
+    setAllFixtures([]);
+    setCurrentGameweek(null);
   };
 
   const handleChangeLeague = () => {
@@ -280,10 +315,6 @@ const App: React.FC = () => {
   const handleNavigate = (view: View) => {
     setShockwave({ x: window.innerWidth / 2, y: window.innerHeight / 2, key: Date.now() });
     setError(null); // Clear errors on navigation
-
-    if (view === View.Chart && !areTeamsFullyLoaded && !isFetchingDetails) {
-        loadFullTeamData();
-    }
     
     if (view !== View.Scout) {
         setScoutResult(null); // Clear suggestions when leaving scout page
@@ -311,8 +342,29 @@ const App: React.FC = () => {
         case View.Dashboard:
             return <Dashboard 
                         teams={teams}
-                        fixtures={fixtures}
-                        fplTeams={fplTeams}
+                        areTeamsFullyLoaded={areTeamsFullyLoaded}
+                        isFetchingDetails={isFetchingDetails}
+                    />;
+        case View.History:
+            if (isFetchingDetails) {
+                return (
+                    <div className="flex flex-col items-center justify-center h-96 bg-brand-surface rounded-xl shadow-2xl backdrop-blur-sm border border-white/10">
+                        <Loader />
+                        <p className="mt-4 text-brand-text-muted animate-pulse">Loading transfer history...</p>
+                    </div>
+                );
+            }
+            if (!areTeamsFullyLoaded && teams.length > 0) {
+                 return (
+                    <div className="text-center py-10 bg-brand-surface rounded-xl border border-white/10">
+                        <p className="text-xl text-brand-text-muted">Detailed history is still loading. Please wait a moment.</p>
+                    </div>
+                );
+            }
+            return <TransferHistory teams={teams} />;
+        case View.Analysis:
+             return <Analysis 
+                        teams={teams}
                         keyMatches={keyMatches}
                         isLoadingKeyMatches={isLoadingKeyMatches}
                         onAnalyzeKeyMatches={handleAnalyzeKeyMatches}
@@ -322,26 +374,14 @@ const App: React.FC = () => {
                         luckAnalysis={luckAnalysis}
                         isLoadingLuck={isLoadingLuck}
                         onAnalyzeLuck={handleAnalyzeLuck}
-                    />;
-        case View.Chart:
-            if (isFetchingDetails) {
-                return (
-                    <div className="flex flex-col items-center justify-center h-96">
-                        <Loader />
-                        <p className="mt-4 text-brand-text-muted animate-pulse">Loading detailed performance data...</p>
-                    </div>
-                );
-            }
-            return <PerformanceChart teams={teams} />;
-        case View.Rankings:
-            return <TeamRankings
-                        teams={teams}
-                        aiScores={aiScores}
-                        loadingStates={loadingStates}
-                        onAnalyze={handleAnalyzeTeam}
+                        allFixtures={allFixtures}
+                        fplTeams={fplTeams}
+                        currentGameweek={currentGameweek}
                     />;
         case View.PvP:
             return <PvpAnalysis teams={teams} fixtures={fixtures} fplTeams={fplTeams} />;
+        case View.Players:
+            return <Players teams={teams} bootstrapData={bootstrapData} />;
         case View.Scout:
             return <Scout 
                         teams={teams}
